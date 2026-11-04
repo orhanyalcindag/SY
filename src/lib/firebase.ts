@@ -10,6 +10,16 @@ export interface FirebaseConfig {
   appId: string;
 }
 
+// Built-in verified cloud credentials for Simay Yorulmaz Health & Beauty
+export const DEFAULT_FIREBASE_CONFIG: FirebaseConfig = {
+  apiKey: 'AIzaSyA0NP4-OYyE0PJ6YpukWat3rCJ0l-IISYw',
+  authDomain: 'syhealthbeauty.firebaseapp.com',
+  projectId: 'syhealthbeauty',
+  storageBucket: 'syhealthbeauty.firebasestorage.app',
+  messagingSenderId: '935227571087',
+  appId: '1:935227571087:web:19a27e8fef1133e5dfe9fa',
+};
+
 // 1. Check environment variables
 const envConfig: Partial<FirebaseConfig> = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -20,8 +30,8 @@ const envConfig: Partial<FirebaseConfig> = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// 2. Helper to get active config (Env or localStorage fallback)
-export function getActiveFirebaseConfig(): FirebaseConfig | null {
+// 2. Helper to get active config (Env -> localStorage -> Built-in default)
+export function getActiveFirebaseConfig(): FirebaseConfig {
   if (
     envConfig.apiKey &&
     envConfig.projectId &&
@@ -44,7 +54,7 @@ export function getActiveFirebaseConfig(): FirebaseConfig | null {
     }
   }
 
-  return null;
+  return DEFAULT_FIREBASE_CONFIG;
 }
 
 // 3. Initialize Firebase instance
