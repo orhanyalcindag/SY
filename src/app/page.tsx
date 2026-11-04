@@ -431,10 +431,10 @@ export default function HomePage() {
               </div>
               <div>
                 <h4 className="text-sm font-bold text-white">
-                  Sepete Ekleyin, WhatsApp ile Kapınıza Gelsin
+                  Sepete Ekleyin, WhatsApp ile Ayırtıp Dükkandan Teslim Alın
                 </h4>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Tüm ürünlerimizi filtreleyip incelemek için ayrılmış mağaza sayfamızı ziyaret edin.
+                  Demirköy salonumuzda kullanılan saf klinik serum ve bakım ürünlerini sepetinize ekleyip salondan elden teslim alabilirsiniz.
                 </p>
               </div>
             </div>

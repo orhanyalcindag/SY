@@ -100,13 +100,13 @@ export default function ProductsPage() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-3">
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Doğrudan Salondan WhatsApp ile Sipariş</span>
+              <span>WhatsApp ile Ayırtın & Dükkandan Teslim Alın</span>
             </div>
             <h1 className="font-serif text-3xl sm:text-5xl font-black text-white leading-tight">
               Profesyonel Cilt & Bakım Ürünleri
             </h1>
             <p className="mt-3 text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-2xl">
-              Simay Yorulmaz tarafından klinikte kullanılan saf formüllü serumlar, UV filtreleri, elixirlar ve kirpik güçlendiriciler. Sepetinize ekleyin, tek tıkla WhatsApp üzerinden siparişinizi tamamlayın.
+              Simay Yorulmaz tarafından klinikte kullanılan saf formüllü serumlar, UV filtreleri, elixirlar ve kirpik güçlendiriciler. Sepetinize ekleyin, WhatsApp üzerinden ayırtıp Demirköy salonumuzdan elden teslim alın.
             </p>
           </div>
 
@@ -123,7 +123,7 @@ export default function ProductsPage() {
               <div className="p-2 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37]">
                 <PackageCheck className="w-4 h-4" />
               </div>
-              <span className="text-zinc-300 font-medium">Salondan Elden / Kargo</span>
+              <span className="text-zinc-300 font-medium">Dükkandan Elden Teslim</span>
             </div>
 
             <div className="flex items-center gap-2.5">

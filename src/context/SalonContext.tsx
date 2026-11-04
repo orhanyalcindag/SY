@@ -98,8 +98,14 @@ interface SalonContextType {
   selectedServiceForBooking: SalonService | null;
   setSelectedServiceForBooking: (service: SalonService | null) => void;
 
-  // WhatsApp Checkout Action
-  sendWhatsAppOrder: (clientInfo: { name: string; phone: string; address?: string; note?: string }) => void;
+  // WhatsApp Checkout Action (In-Store Pickup)
+  sendWhatsAppOrder: (clientInfo: {
+    name: string;
+    phone: string;
+    pickupTime?: string;
+    note?: string;
+    address?: string;
+  }) => void;
 
   // Feedback Notification
   notification: string | null;
@@ -574,34 +580,41 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
   const cartTotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // WhatsApp Checkout Action
-  const sendWhatsAppOrder = (clientInfo: { name: string; phone: string; address?: string; note?: string }) => {
+  // WhatsApp Checkout Action (In-Store Pickup)
+  const sendWhatsAppOrder = (clientInfo: {
+    name: string;
+    phone: string;
+    pickupTime?: string;
+    note?: string;
+    address?: string;
+  }) => {
     if (cart.length === 0) return;
 
-    let message = `*✨ SİMAY YORULMAZ HEALTH & BEAUTY - YENİ SİPARİŞ ✨*\n\n`;
+    let message = `*✨ SİMAY YORULMAZ HEALTH & BEAUTY - DÜKKANDAN TESLİM SİPARİŞ ✨*\n\n`;
     message += `*Müşteri:* ${clientInfo.name}\n`;
     message += `*Telefon:* ${clientInfo.phone}\n`;
-    if (clientInfo.address) {
-      message += `*Teslimat Adresi:* ${clientInfo.address}\n`;
+    message += `*Teslimat:* 🏬 Dükkandan Elden Teslim Alma (Demirköy Salonu)\n`;
+    if (clientInfo.pickupTime) {
+      message += `*Tahmini Teslim Alma:* ${clientInfo.pickupTime}\n`;
     }
     if (clientInfo.note) {
       message += `*Sipariş Notu:* ${clientInfo.note}\n`;
     }
-    message += `\n*Sepet İçeriği:*\n`;
+    message += `\n*Ayrılacak Ürünler (Sepet):*\n`;
 
     cart.forEach((item, index) => {
       message += `${index + 1}. ${item.product.name} x ${item.quantity} adet = ${item.product.price * item.quantity} ₺\n`;
     });
 
     message += `\n*TOPLAM TUTAR:* ${cartTotal} ₺\n`;
-    message += `\n_Merhaba Simay Hanım, web sitenizden yukarıdaki ürünlerin siparişini oluşturmak istiyorum. Stok ve kargo/teslimat hakkında bilgi alabilir miyim?_`;
+    message += `\n_Merhaba Simay Hanım, web sitenizden yukarıdaki ürünleri dükkandan elden teslim almak üzere ayırtmak istiyorum. Ürünler hazırlandığında bilgi verebilir misiniz?_`;
 
     const encoded = encodeURIComponent(message);
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${SALON_INFO.whatsappRaw}&text=${encoded}`;
     window.open(whatsappUrl, '_blank');
     clearCart();
     setIsCartOpen(false);
-    showNotification('Siparişiniz WhatsApp mesajı olarak yönlendirildi!');
+    showNotification('Siparişiniz WhatsApp mesajı olarak yönlendirildi! Ürünleriniz dükkanda sizin için hazırlanacaktır.');
   };
 
   return (

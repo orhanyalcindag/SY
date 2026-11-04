@@ -17,6 +17,8 @@ import {
   Phone,
   MapPin,
   FileText,
+  Clock,
+  Store,
 } from 'lucide-react';
 
 export default function CartDrawer() {
@@ -33,7 +35,7 @@ export default function CartDrawer() {
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('+90 5');
-  const [address, setAddress] = useState('');
+  const [pickupTime, setPickupTime] = useState('');
   const [note, setNote] = useState('');
   const [validationError, setValidationError] = useState('');
 
@@ -53,7 +55,7 @@ export default function CartDrawer() {
     sendWhatsAppOrder({
       name,
       phone,
-      address,
+      pickupTime,
       note,
     });
   };
@@ -79,7 +81,7 @@ export default function CartDrawer() {
                 Alışveriş Sepetim
               </h3>
               <p className="text-[11px] text-[#D4AF37]">
-                WhatsApp Üzerinden Doğrudan Sipariş
+                WhatsApp ile Ayırt & Dükkandan Teslim Al
               </p>
             </div>
           </div>
@@ -187,12 +189,36 @@ export default function CartDrawer() {
               </button>
             </div>
 
-            {/* Checkout Information Form */}
+            {/* Checkout Information Form - In-Store Pickup */}
             <form onSubmit={handleSubmit} className="pt-4 border-t border-white/10 space-y-3.5">
-              <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Send className="w-3.5 h-3.5 text-[#D4AF37]" />
-                <span>Teslimat & İletişim Bilgileri</span>
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Store className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  <span>Dükkandan Teslim Alma Bilgileri</span>
+                </h4>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/20 font-medium">
+                  Elden Teslim
+                </span>
+              </div>
+
+              {/* In-Store Pickup Info Banner */}
+              <div className="p-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-zinc-900 to-amber-500/5 border border-[#D4AF37]/30 text-xs space-y-1.5">
+                <div className="flex items-start gap-2">
+                  <Store className="w-4 h-4 text-[#D4AF37] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-zinc-100 block text-xs">
+                      Simay Yorulmaz Güzellik Salonu
+                    </span>
+                    <p className="text-[11px] text-zinc-300 leading-snug">
+                      Siparişiniz WhatsApp üzerinden adınıza ayrılır. Hazırlandığında dükkanımızdan elden teslim alabilirsiniz.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 pl-6 border-t border-white/5 pt-1.5">
+                  <MapPin className="w-3 h-3 text-[#D4AF37] shrink-0" />
+                  <span className="truncate">Orhaniye Mah. İğneada Cad. No: 36/C, Demirköy</span>
+                </div>
+              </div>
 
               {validationError && (
                 <div className="p-2.5 rounded-lg bg-red-950/60 border border-red-800 text-red-200 text-xs">
@@ -236,15 +262,15 @@ export default function CartDrawer() {
 
               <div>
                 <label className="block text-[11px] text-zinc-400 mb-1">
-                  Teslimat / Kargo Adresi (İsteğe Bağlı)
+                  Tahmini Teslim Alma Zamanı (İsteğe Bağlı)
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
+                  <Clock className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
                   <input
                     type="text"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Demirköy / Kırklareli veya Şehir dışı kargo"
+                    value={pickupTime}
+                    onChange={(e) => setPickupTime(e.target.value)}
+                    placeholder="Örn: Bugün 17:00'de, Yarın öğleden sonra, Randevumda..."
                     className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
                   />
                 </div>
@@ -252,7 +278,7 @@ export default function CartDrawer() {
 
               <div>
                 <label className="block text-[11px] text-zinc-400 mb-1">
-                  Sipariş Notu (İsteğe Bağlı)
+                  Sipariş / Hazırlık Notu (İsteğe Bağlı)
                 </label>
                 <div className="relative">
                   <FileText className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
@@ -260,7 +286,7 @@ export default function CartDrawer() {
                     type="text"
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    placeholder="Örn: Cilt bakımı sonrası elden teslim alacağım"
+                    placeholder="Örn: Hediye paketi yapılmasını rica ederim..."
                     className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
                   />
                 </div>
@@ -270,16 +296,16 @@ export default function CartDrawer() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-sm shadow-xl shadow-emerald-900/40 flex items-center justify-center gap-2 transition transform active:scale-95"
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-sm shadow-xl shadow-emerald-900/40 flex items-center justify-center gap-2 transition transform active:scale-95 cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
-                  <span>WhatsApp ile Sipariş Ver ({formatCurrency(cartTotal)})</span>
+                  <span>WhatsApp ile Ayırt & Dükkandan Teslim Al ({formatCurrency(cartTotal)})</span>
                 </button>
               </div>
 
               <div className="flex items-center justify-center gap-2 text-[10px] text-zinc-400 text-center pt-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Simay Hanım ile birebir doğrudan WhatsApp hattı</span>
+                <span>Simay Hanım ile birebir WhatsApp rezervasyonu</span>
               </div>
             </form>
           </div>
@@ -294,8 +320,8 @@ export default function CartDrawer() {
                 {formatCurrency(cartTotal)}
               </div>
             </div>
-            <span className="text-[10px] text-zinc-400">
-              *Ödeme teslimatta / havale ile
+            <span className="text-[10px] text-zinc-400 text-right">
+              *Ödeme dükkanda teslim alırken<br />nakit, kart veya havale ile
             </span>
           </div>
         )}
