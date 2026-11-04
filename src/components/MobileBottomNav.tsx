@@ -88,10 +88,10 @@ export default function MobileBottomNav() {
         <button
           onClick={handleOpenInstall}
           className="flex flex-col items-center justify-center py-1 rounded-xl text-zinc-400 hover:text-[#D4AF37] transition cursor-pointer"
-          title="Uygulamayı Telefona Yükle"
+          title="Uygulamayı Telefona / Ana Ekrana Ekle"
         >
           <Smartphone className="w-4 h-4 text-[#D4AF37]" />
-          <span className="text-[10px] font-semibold mt-1 text-[#D4AF37]">Yükle</span>
+          <span className="text-[10px] font-semibold mt-1 text-[#D4AF37]">Uygulama</span>
         </button>
       </div>
     </nav>

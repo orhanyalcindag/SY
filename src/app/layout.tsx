@@ -61,6 +61,10 @@ export default function RootLayout({
     <html lang="tr" className="dark">
       <head>
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Simay Yorulmaz" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="bg-[#0A0A0C] text-zinc-100 min-h-screen antialiased selection:bg-[#D4AF37] selection:text-black pb-16 sm:pb-0">
