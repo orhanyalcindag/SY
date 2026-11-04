@@ -70,27 +70,27 @@ export default function Navbar() {
 
         {/* Desktop Navigation Links */}
         <nav className="hidden md:flex items-center gap-7 text-xs font-medium tracking-wide">
-          <a href="#hizmetler" className="text-zinc-300 hover:text-[#D4AF37] transition">
+          <Link href="/#hizmetler" className="text-zinc-300 hover:text-[#D4AF37] transition">
             İşlemler & Fiyatlar
-          </a>
-          <a href="#urunler" className="text-zinc-300 hover:text-[#D4AF37] transition flex items-center gap-1.5">
+          </Link>
+          <Link href="/urunler" className="text-zinc-300 hover:text-[#D4AF37] transition flex items-center gap-1.5 group">
             <span>Özel Ürünler</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30">
-              WhatsApp Sipariş
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 group-hover:bg-emerald-500 group-hover:text-black transition">
+              WhatsApp Mağaza
             </span>
-          </a>
-          <a href="#hakkimizda" className="text-zinc-300 hover:text-[#D4AF37] transition">
+          </Link>
+          <Link href="/#hakkimizda" className="text-zinc-300 hover:text-[#D4AF37] transition">
             Hakkımızda
-          </a>
-          <a href="#galeri" className="text-zinc-300 hover:text-[#D4AF37] transition">
+          </Link>
+          <Link href="/#galeri" className="text-zinc-300 hover:text-[#D4AF37] transition">
             Galeri
-          </a>
-          <a href="#yorumlar" className="text-zinc-300 hover:text-[#D4AF37] transition">
+          </Link>
+          <Link href="/#yorumlar" className="text-zinc-300 hover:text-[#D4AF37] transition">
             Yorumlar
-          </a>
-          <a href="#iletisim" className="text-zinc-300 hover:text-[#D4AF37] transition">
+          </Link>
+          <Link href="/#iletisim" className="text-zinc-300 hover:text-[#D4AF37] transition">
             İletişim & Konum
-          </a>
+          </Link>
         </nav>
 
         {/* Action Controls: Cart, Booking, Mobile Menu Toggle */}
@@ -98,7 +98,7 @@ export default function Navbar() {
           {/* Cart Trigger */}
           <button
             onClick={() => setIsCartOpen(true)}
-            className="relative p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 hover:border-[#D4AF37]/50 hover:text-[#D4AF37] transition flex items-center gap-1.5"
+            className="relative p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 hover:border-[#D4AF37]/50 hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer"
             title="Alışveriş Sepeti"
           >
             <ShoppingBag className="w-4 h-4" />
@@ -113,7 +113,7 @@ export default function Navbar() {
           {/* Quick Booking CTA */}
           <button
             onClick={() => setIsBookingOpen(true)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA8222] hover:from-[#E5BF47] hover:to-[#B38F2C] text-black font-bold text-xs shadow-lg shadow-[#D4AF37]/20 flex items-center gap-1.5 transition transform active:scale-95"
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA8222] hover:from-[#E5BF47] hover:to-[#B38F2C] text-black font-bold text-xs shadow-lg shadow-[#D4AF37]/20 flex items-center gap-1.5 transition transform active:scale-95 cursor-pointer"
           >
             <Calendar className="w-3.5 h-3.5" />
             <span>Online Randevu</span>
@@ -133,48 +133,48 @@ export default function Navbar() {
       {/* Mobile Dropdown Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-zinc-950/98 border-b border-zinc-800 px-4 py-4 space-y-3">
-          <a
-            href="#hizmetler"
+          <Link
+            href="/#hizmetler"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm text-zinc-300 hover:text-[#D4AF37]"
           >
             İşlemler & Fiyatlar
-          </a>
-          <a
-            href="#urunler"
+          </Link>
+          <Link
+            href="/urunler"
             onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm text-zinc-300 hover:text-[#D4AF37]"
+            className="block py-2 text-sm text-emerald-400 hover:text-emerald-300 font-semibold"
           >
-            Özel Ürünler (WhatsApp Sipariş)
-          </a>
-          <a
-            href="#hakkimizda"
+            Özel Ürünler (WhatsApp Mağaza)
+          </Link>
+          <Link
+            href="/#hakkimizda"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm text-zinc-300 hover:text-[#D4AF37]"
           >
             Hakkımızda
-          </a>
-          <a
-            href="#galeri"
+          </Link>
+          <Link
+            href="/#galeri"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm text-zinc-300 hover:text-[#D4AF37]"
           >
             Galeri
-          </a>
-          <a
-            href="#yorumlar"
+          </Link>
+          <Link
+            href="/#yorumlar"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm text-zinc-300 hover:text-[#D4AF37]"
           >
             Yorumlar
-          </a>
-          <a
-            href="#iletisim"
+          </Link>
+          <Link
+            href="/#iletisim"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm text-zinc-300 hover:text-[#D4AF37]"
           >
             İletişim & Konum
-          </a>
+          </Link>
         </div>
       )}
     </header>

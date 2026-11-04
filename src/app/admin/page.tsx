@@ -213,7 +213,16 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/urunler"
+            target="_blank"
+            className="px-3.5 py-1.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-800 text-emerald-400 text-xs font-semibold transition flex items-center gap-1.5"
+            title="Mağazayı Yeni Sekmede Aç"
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Mağazayı Aç (/urunler)</span>
+          </Link>
           <Link
             href="/"
             className="px-3.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold transition flex items-center gap-1.5"
@@ -761,17 +770,27 @@ export default function AdminPage() {
               <div>
                 <h3 className="text-base font-bold text-white">Ürün & WhatsApp Mağaza Yönetimi</h3>
                 <p className="text-xs text-zinc-400">
-                  Buraya eklenen ürünler web sitesinde listelenir; danışan sepetine ekleyip WhatsApp üzerinden sipariş verebilir.
+                  Buraya eklenen tüm ürünler ayrılmış <strong className="text-emerald-400">/urunler</strong> mağaza sayfasında ve anasayfa vitrininde anında listelenir; danışan sepetine ekleyip WhatsApp üzerinden sipariş verebilir.
                 </p>
               </div>
 
-              <button
-                onClick={() => setIsAddProductOpen(!isAddProductOpen)}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md transition flex items-center gap-1.5"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Yeni Ürün Ekle</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/urunler"
+                  target="_blank"
+                  className="px-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-emerald-500 text-zinc-300 hover:text-white text-xs font-semibold transition flex items-center gap-1.5"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Mağazada Gör</span>
+                </Link>
+                <button
+                  onClick={() => setIsAddProductOpen(!isAddProductOpen)}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Yeni Ürün Ekle</span>
+                </button>
+              </div>
             </div>
 
             {/* Add Product Modal/Card */}

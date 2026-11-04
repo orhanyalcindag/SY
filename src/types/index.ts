@@ -20,6 +20,7 @@ export interface SalonService {
   price: number;
   durationMinutes: number;
   description: string;
+  image?: string;
   popular?: boolean;
 }
 

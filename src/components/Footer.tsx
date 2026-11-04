@@ -72,40 +72,40 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-zinc-400">
               <li>
-                <a href="#hizmetler" className="hover:text-[#D4AF37] transition flex items-center gap-1.5">
+                <Link href="/#hizmetler" className="hover:text-[#D4AF37] transition flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3 text-[#D4AF37]" />
                   <span>Hydrafacial Cilt Bakımı</span>
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#hizmetler" className="hover:text-[#D4AF37] transition flex items-center gap-1.5">
+                <Link href="/#hizmetler" className="hover:text-[#D4AF37] transition flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3 text-[#D4AF37]" />
                   <span>Buz Lazer Epilasyon</span>
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#hizmetler" className="hover:text-[#D4AF37] transition flex items-center gap-1.5">
+                <Link href="/#hizmetler" className="hover:text-[#D4AF37] transition flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3 text-[#D4AF37]" />
                   <span>Jel Protez Tırnak & Nail Art</span>
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#hizmetler" className="hover:text-[#D4AF37] transition flex items-center gap-1.5">
+                <Link href="/#hizmetler" className="hover:text-[#D4AF37] transition flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3 text-[#D4AF37]" />
                   <span>Somon DNA Gençlik Aşısı</span>
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#hizmetler" className="hover:text-[#D4AF37] transition flex items-center gap-1.5">
+                <Link href="/#hizmetler" className="hover:text-[#D4AF37] transition flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3 text-[#D4AF37]" />
                   <span>Volume İpek Kirpik</span>
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#urunler" className="hover:text-[#D4AF37] transition flex items-center gap-1.5 text-[#D4AF37]">
-                  <Sparkles className="w-3 h-3 text-[#D4AF37]" />
-                  <span>Profesyonel Bakım Ürünleri</span>
-                </a>
+                <Link href="/urunler" className="hover:text-[#D4AF37] transition flex items-center gap-1.5 text-emerald-400 font-semibold">
+                  <Sparkles className="w-3 h-3 text-emerald-400" />
+                  <span>Özel Bakım Ürünleri & Mağaza</span>
+                </Link>
               </li>
             </ul>
           </div>

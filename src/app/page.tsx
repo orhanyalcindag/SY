@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useSalon } from '@/context/SalonContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { SALON_INFO } from '@/data/initialData';
+import { SALON_INFO, SALON_GALLERY_IMAGES } from '@/data/initialData';
 import { SalonService } from '@/types';
 import {
   Sparkles,
@@ -21,6 +22,10 @@ import {
   Star,
   Heart,
   Zap,
+  ArrowUpRight,
+  ChevronRight,
+  Award,
+  Sparkle,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
@@ -35,7 +40,6 @@ export default function HomePage() {
   } = useSalon();
 
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('TÜMÜ');
-  const [activeProductFilter, setActiveProductFilter] = useState<string>('TÜMÜ');
 
   const categories: string[] = [
     'TÜMÜ',
@@ -46,24 +50,13 @@ export default function HomePage() {
     'Bölgesel İncelme',
   ];
 
-  const productCategories: string[] = [
-    'TÜMÜ',
-    'Cilt Bakımı & Serum',
-    'Güneş Koruması',
-    'Tırnak & El Bakımı',
-    'Kaş & Kirpik Serumu',
-    'Vücut & Masaj Yağı',
-  ];
-
   const filteredServices =
     activeCategoryFilter === 'TÜMÜ'
       ? services
       : services.filter((s) => s.category === activeCategoryFilter);
 
-  const filteredProducts =
-    activeProductFilter === 'TÜMÜ'
-      ? products
-      : products.filter((p) => p.category === activeProductFilter);
+  // Take top 3 or 4 featured products for the homepage teaser
+  const featuredProducts = products.filter((p) => p.featured).slice(0, 4);
 
   const handleBookService = (service: SalonService) => {
     setSelectedServiceForBooking(service);
@@ -80,114 +73,168 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Navigation (Strictly no admin button) */}
+      {/* Navigation */}
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative pt-16 pb-24 md:pt-24 md:pb-32 overflow-hidden border-b border-white/5">
-        {/* Glow Gradients */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-[#D4AF37]/10 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute top-1/3 left-1/4 w-[350px] h-[200px] bg-amber-600/10 rounded-full blur-[100px] pointer-events-none" />
+      {/* Hero Section with Rich Visuals */}
+      <section className="relative pt-12 pb-24 md:pt-20 md:pb-32 overflow-hidden border-b border-white/5">
+        {/* Ambient Glows */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-[#D4AF37]/10 rounded-full blur-[150px] pointer-events-none" />
+        <div className="absolute top-1/3 left-1/4 w-[400px] h-[250px] bg-amber-600/10 rounded-full blur-[110px] pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900/90 border border-[#D4AF37]/40 text-[#D4AF37] text-xs font-semibold mb-6 shadow-lg shadow-[#D4AF37]/5 animate-in fade-in">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Kırklareli Demirköy’ün Ayrıcalıklı Güzellik & Estetik Kulübü</span>
-          </div>
-
-          {/* Title */}
-          <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white max-w-4xl mx-auto leading-[1.15]">
-            Zarafetinizi ve Işıltınızı <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F3E5AB] via-[#D4AF37] to-[#B38F2C]">
-              Uzman Dokunuşlarla
-            </span>{' '}
-            Keşfedin
-          </h1>
-
-          {/* Subtitle */}
-          <p className="mt-6 text-sm sm:text-base text-zinc-300 max-w-2xl mx-auto leading-relaxed">
-            Simay Yorulmaz Health & Beauty; gelişmiş buz lazer epilasyon, medikal cilt protokolleri, protez tırnak sanatı ve profesyonel bakımlarla sizlere ayrıcalıklı bir deneyim sunuyor.
-          </p>
-
-          {/* CTAs */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
-            <button
-              onClick={() => setIsBookingOpen(true)}
-              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA8222] hover:from-[#E5BF47] hover:to-[#B38F2C] text-black font-extrabold text-xs sm:text-sm shadow-xl shadow-[#D4AF37]/20 flex items-center gap-2 transition transform active:scale-95"
-            >
-              <Calendar className="w-4 h-4" />
-              <span>Online Randevu Oluştur</span>
-            </button>
-
-            <a
-              href={`https://api.whatsapp.com/send?phone=${SALON_INFO.whatsappRaw}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-6 py-3.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-100 font-bold text-xs sm:text-sm border border-zinc-700 hover:border-[#D4AF37]/40 flex items-center gap-2 transition"
-            >
-              <Phone className="w-4 h-4 text-emerald-400" />
-              <span>WhatsApp’tan Bilgi Al</span>
-            </a>
-          </div>
-
-          {/* Trust Highlights */}
-          <div className="mt-14 pt-8 border-t border-white/5 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto text-left">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-[#D4AF37]/10 text-[#D4AF37]">
-                <ShieldCheck className="w-5 h-5" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            {/* Left Copy */}
+            <div className="lg:col-span-7 text-center lg:text-left space-y-6">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900/90 border border-[#D4AF37]/40 text-[#D4AF37] text-xs font-semibold shadow-lg shadow-[#D4AF37]/5">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Kırklareli Demirköy’ün Seçkin Güzellik & Estetik Kulübü</span>
               </div>
-              <div>
-                <h4 className="text-xs font-bold text-white">%100 Steril Ortam</h4>
-                <p className="text-[11px] text-zinc-400">Tek kullanımlık medikal hijyen</p>
+
+              {/* Title */}
+              <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.12]">
+                Zarafetinizi ve Işıltınızı <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F3E5AB] via-[#D4AF37] to-[#B38F2C]">
+                  Uzman Dokunuşlarla
+                </span>{' '}
+                Keşfedin
+              </h1>
+
+              {/* Subtitle */}
+              <p className="text-sm sm:text-base text-zinc-300 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                Simay Yorulmaz Health & Beauty; gelişmiş buz lazer epilasyon, Hydrafacial medikal cilt bakımı, protez tırnak sanatı ve kişiye özel eliksirlerle sizlere ayrıcalıklı bir deneyim sunuyor.
+              </p>
+
+              {/* CTAs */}
+              <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-3.5">
+                <button
+                  onClick={() => setIsBookingOpen(true)}
+                  className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA8222] hover:from-[#E5BF47] hover:to-[#B38F2C] text-black font-extrabold text-xs sm:text-sm shadow-xl shadow-[#D4AF37]/20 flex items-center gap-2 transition transform active:scale-95 cursor-pointer"
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>Online Randevu Oluştur</span>
+                </button>
+
+                <Link
+                  href="/urunler"
+                  className="px-6 py-3.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-emerald-400 font-bold text-xs sm:text-sm border border-emerald-500/30 hover:border-emerald-500/60 flex items-center gap-2 transition"
+                >
+                  <ShoppingBag className="w-4 h-4 text-emerald-400" />
+                  <span>WhatsApp Mağazası</span>
+                </Link>
+
+                <a
+                  href={`https://api.whatsapp.com/send?phone=${SALON_INFO.whatsappRaw}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-3.5 rounded-xl bg-black/60 hover:bg-zinc-900 text-zinc-300 hover:text-white text-xs font-semibold border border-white/10 flex items-center gap-2 transition"
+                >
+                  <Phone className="w-4 h-4 text-[#D4AF37]" />
+                  <span>Hemen Ara</span>
+                </a>
+              </div>
+
+              {/* Trust Badges */}
+              <div className="pt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-left border-t border-white/10">
+                <div>
+                  <div className="text-xl font-black text-[#D4AF37]">500+</div>
+                  <div className="text-[11px] text-zinc-400 mt-0.5">Mutlu Danışan</div>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-[#D4AF37]">-4°C</div>
+                  <div className="text-[11px] text-zinc-400 mt-0.5">Buz Lazer Konforu</div>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-[#D4AF37]">4.9 / 5</div>
+                  <div className="text-[11px] text-zinc-400 mt-0.5">Memnuniyet Skoru</div>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-[#D4AF37]">%100</div>
+                  <div className="text-[11px] text-zinc-400 mt-0.5">Klinik Hijyen</div>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-[#D4AF37]/10 text-[#D4AF37]">
-                <Zap className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-white">Buz Başlıklı Lazer</h4>
-                <p className="text-[11px] text-zinc-400">Acısız & 4 mevsim etkili</p>
-              </div>
-            </div>
+            {/* Right Visual Collage */}
+            <div className="lg:col-span-5 relative">
+              <div className="relative mx-auto max-w-md lg:max-w-none">
+                {/* Main Large Visual Card */}
+                <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border border-[#D4AF37]/30 shadow-2xl shadow-[#D4AF37]/10 group">
+                  <Image
+                    src="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=900&auto=format&fit=crop&q=80"
+                    alt="Simay Yorulmaz Cilt Bakımı"
+                    fill
+                    priority
+                    className="object-cover group-hover:scale-105 transition duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
 
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-[#D4AF37]/10 text-[#D4AF37]">
-                <Star className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-white">Kişiye Özel Protokol</h4>
-                <p className="text-[11px] text-zinc-400">Cilt tipine özel eliksirler</p>
-              </div>
-            </div>
+                  {/* Overlaid Badge Inside Photo */}
+                  <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-zinc-950/80 backdrop-blur-md border border-white/10">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-wider block">
+                          Öne Çıkan Protokol
+                        </span>
+                        <h4 className="font-serif font-bold text-sm text-white mt-0.5">
+                          Hydrafacial & Somon DNA
+                        </h4>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-lg bg-[#D4AF37] text-black font-extrabold text-xs">
+                        1.400 ₺
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-[#D4AF37]/10 text-[#D4AF37]">
-                <Heart className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-white">500+ Mutlu Danışan</h4>
-                <p className="text-[11px] text-zinc-400">Demirköy’ün referans merkezi</p>
+                {/* Floating Side Card: Nail Art / Lazer */}
+                <div className="hidden sm:flex absolute -bottom-6 -left-8 p-3 rounded-2xl bg-zinc-900/95 border border-[#D4AF37]/40 shadow-2xl backdrop-blur-md items-center gap-3">
+                  <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-zinc-700">
+                    <Image
+                      src="https://images.unsplash.com/photo-1632345031435-8727f6897d53?w=300&auto=format&fit=crop&q=80"
+                      alt="Nail Art"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-[#D4AF37] uppercase block">
+                      Jel Tırnak & Nail Art
+                    </span>
+                    <p className="text-xs font-semibold text-white">Özel El Çizimi Tasarımlar</p>
+                    <span className="text-[10px] text-emerald-400 font-medium">Randevular Açık</span>
+                  </div>
+                </div>
+
+                {/* Floating Top Badge: Buz Lazer */}
+                <div className="hidden sm:flex absolute -top-4 -right-4 p-3 rounded-2xl bg-zinc-900/95 border border-white/10 shadow-2xl backdrop-blur-md items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-zinc-400 block font-semibold">Hibrit Buz Başlık</span>
+                    <span className="text-xs font-bold text-white">Acısız Lazer Seansı</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Services Section (#hizmetler) */}
-      <section id="hizmetler" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-10">
+      {/* Services Section (#hizmetler) with Visual Cards */}
+      <section id="hizmetler" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-2xl mx-auto mb-12">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-xs font-semibold mb-3">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Hizmet Yelpazesi & Fiyatlandırma</span>
+            <span>Klinik & Estetik Hizmet Yelpazesi</span>
           </div>
-          <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-white">
+          <h2 className="font-serif text-3xl sm:text-5xl font-extrabold text-white">
             İşlemler ve Seans Protokolleri
           </h2>
           <p className="text-xs sm:text-sm text-zinc-400 mt-2">
-            İhtiyacınıza en uygun bakımı seçerek hızlıca randevunuzu planlayabilirsiniz.
+            Her biri alanında uzmanlık gerektiren son teknoloji medikal ve estetik uygulamalarımız.
           </p>
 
           {/* Category Filter Pills */}
@@ -196,7 +243,7 @@ export default function HomePage() {
               <button
                 key={cat}
                 onClick={() => setActiveCategoryFilter(cat)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
                   activeCategoryFilter === cat
                     ? 'bg-[#D4AF37] text-black shadow-md shadow-[#D4AF37]/20 font-bold'
                     : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
@@ -208,140 +255,147 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {/* Rich Services Grid with Images */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredServices.map((service) => (
             <div
               key={service.id}
-              className="group relative p-6 rounded-2xl bg-zinc-950/80 border border-zinc-800/90 hover:border-[#D4AF37]/50 transition-all duration-300 flex flex-col justify-between hover:shadow-xl hover:shadow-[#D4AF37]/5"
+              className="group rounded-3xl bg-zinc-950 border border-zinc-800/90 overflow-hidden hover:border-[#D4AF37]/60 transition-all duration-300 flex flex-col justify-between hover:shadow-2xl hover:shadow-[#D4AF37]/10"
             >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/20">
+              {/* Service Visual Banner */}
+              <div className="relative aspect-[16/9] w-full overflow-hidden bg-black">
+                {service.image ? (
+                  <Image
+                    src={service.image}
+                    alt={service.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition duration-500 opacity-90"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
+                    <Sparkles className="w-8 h-8 text-[#D4AF37]" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
+
+                <div className="absolute top-3 left-3">
+                  <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md bg-black/80 backdrop-blur-sm text-[#D4AF37] border border-[#D4AF37]/30">
                     {service.category}
                   </span>
-                  <div className="flex items-center gap-1 text-[11px] text-zinc-400">
-                    <Clock className="w-3.5 h-3.5 text-zinc-500" />
-                    <span>{service.durationMinutes} dk</span>
-                  </div>
                 </div>
 
-                <h3 className="font-serif text-base font-bold text-white group-hover:text-[#D4AF37] transition">
-                  {service.name}
-                </h3>
-
-                <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
-                  {service.description}
-                </p>
+                <div className="absolute top-3 right-3 flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-sm text-zinc-300 border border-white/10">
+                  <Clock className="w-3 h-3 text-[#D4AF37]" />
+                  <span>{service.durationMinutes} dk</span>
+                </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-zinc-800/80 flex items-center justify-between">
+              {/* Service Info */}
+              <div className="p-6 flex-1 flex flex-col justify-between">
                 <div>
-                  <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">İşlem Bedeli</span>
-                  <span className="text-base font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#D4AF37]">
-                    {formatCurrency(service.price)}
-                  </span>
+                  <h3 className="font-serif text-lg font-bold text-white group-hover:text-[#D4AF37] transition">
+                    {service.name}
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-2.5 leading-relaxed">
+                    {service.description}
+                  </p>
                 </div>
 
-                <button
-                  onClick={() => handleBookService(service)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black text-zinc-200 font-bold text-xs transition flex items-center gap-1.5"
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>Randevu Al</span>
-                </button>
+                <div className="mt-6 pt-4 border-t border-zinc-800/80 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">İşlem Bedeli</span>
+                    <span className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-[#D4AF37]">
+                      {formatCurrency(service.price)}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => handleBookService(service)}
+                    className="px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black text-zinc-200 font-extrabold text-xs transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Randevu Al</span>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Products & Shop Section (#urunler) */}
-      <section id="urunler" className="py-20 bg-zinc-950/60 border-y border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-3">
-              <ShoppingBag className="w-3.5 h-3.5" />
-              <span>WhatsApp Sipariş & Doğrudan Teslimat</span>
-            </div>
-            <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-white">
-              Özel Bakım Ürünleri & Serumlar
-            </h2>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-2">
-              Salonda uygulanan profesyonel protokollerin devamını evinizde sürdürmeniz için Simay Yorulmaz onaylı seçkin ürünler.
-            </p>
+      {/* DEDICATED PRODUCTS TEASER SECTION (Redirects to /urunler) */}
+      <section className="py-20 bg-zinc-950/70 border-y border-white/5 relative overflow-hidden">
+        {/* Glow */}
+        <div className="absolute -top-24 right-0 w-[400px] h-[300px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none" />
 
-            {/* Product Category Filters */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-6">
-              {productCategories.map((pCat) => (
-                <button
-                  key={pCat}
-                  onClick={() => setActiveProductFilter(pCat)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${
-                    activeProductFilter === pCat
-                      ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-900/30'
-                      : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
-                  }`}
-                >
-                  {pCat}
-                </button>
-              ))}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-3">
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span>Klinik Onaylı Ev Devam Protokolleri</span>
+              </div>
+              <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-white">
+                Özel Bakım Ürünleri & Serumlar
+              </h2>
+              <p className="text-xs sm:text-sm text-zinc-400 mt-2 max-w-xl">
+                Salonda yapılan işlemlerin kalıcılığını ve etkisini artıran, Simay Yorulmaz tarafından özenle seçilmiş klinik kozmetik ürünleri.
+              </p>
             </div>
+
+            {/* Direct Link to /urunler */}
+            <Link
+              href="/urunler"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-xl shadow-emerald-950 transition transform active:scale-95 shrink-0"
+            >
+              <span>Tüm Ürünleri İncele ({products.length}+ Ürün)</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
 
-          {/* Products Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
+          {/* 4 Featured Products Teaser Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featuredProducts.map((product) => (
               <div
                 key={product.id}
                 className="group rounded-2xl bg-zinc-900/90 border border-zinc-800 overflow-hidden hover:border-[#D4AF37]/50 transition flex flex-col justify-between"
               >
-                {/* Product Image */}
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-black">
+                <div className="relative aspect-[4/3] w-full bg-black">
                   <Image
                     src={product.image}
                     alt={product.name}
                     fill
                     className="object-cover group-hover:scale-105 transition duration-500"
                   />
-                  {product.featured && (
-                    <span className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-[#D4AF37] text-black font-extrabold text-[10px] shadow-md">
-                      ÖNERİLEN
-                    </span>
-                  )}
-                  <span className="absolute top-3 right-3 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-sm text-emerald-400 border border-emerald-500/30 font-semibold text-[10px]">
-                    {product.inStock ? 'Stokta Var' : 'Tükendi'}
+                  <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-[#D4AF37] text-black font-extrabold text-[9px] shadow-sm">
+                    SEÇKİN
+                  </span>
+                  <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-sm text-emerald-400 border border-emerald-500/30 font-semibold text-[9px]">
+                    {product.inStock ? 'Stokta' : 'Tükendi'}
                   </span>
                 </div>
 
-                {/* Details */}
-                <div className="p-5 flex-1 flex flex-col justify-between">
+                <div className="p-4 flex-1 flex flex-col justify-between">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
                       {product.category}
                     </span>
-                    <h3 className="font-serif text-sm font-bold text-white group-hover:text-[#D4AF37] transition">
+                    <h4 className="font-serif text-xs font-bold text-white group-hover:text-[#D4AF37] transition line-clamp-2">
                       {product.name}
-                    </h3>
-                    <p className="text-xs text-zinc-400 mt-2 line-clamp-2 leading-relaxed">
-                      {product.description}
-                    </p>
+                    </h4>
                   </div>
 
-                  <div className="mt-5 pt-4 border-t border-zinc-800 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] text-zinc-400 block">Fiyat</span>
-                      <span className="text-base font-black text-[#D4AF37]">
-                        {formatCurrency(product.price)}
-                      </span>
-                    </div>
+                  <div className="mt-4 pt-3 border-t border-zinc-800 flex items-center justify-between">
+                    <span className="text-sm font-black text-[#D4AF37]">
+                      {formatCurrency(product.price)}
+                    </span>
 
                     <button
                       onClick={() => addToCart(product)}
                       disabled={!product.inStock}
-                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-md shadow-emerald-950 flex items-center gap-1.5 transition transform active:scale-95 disabled:opacity-50"
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-[11px] flex items-center gap-1 transition cursor-pointer"
                     >
-                      <ShoppingBag className="w-3.5 h-3.5" />
+                      <ShoppingBag className="w-3 h-3" />
                       <span>Sepete Ekle</span>
                     </button>
                   </div>
@@ -349,11 +403,36 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+
+          {/* Banner inside Teaser */}
+          <div className="mt-10 p-6 rounded-2xl bg-zinc-900 border border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400">
+                <ShoppingBag className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white">
+                  Sepete Ekleyin, WhatsApp ile Kapınıza Gelsin
+                </h4>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Tüm ürünlerimizi filtreleyip incelemek için ayrılmış mağaza sayfamızı ziyaret edin.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/urunler"
+              className="px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-200 hover:text-white transition flex items-center gap-1.5 shrink-0"
+            >
+              <span>Mağaza Sayfasına Git</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* About & Studio Atmosphere (#hakkimizda) */}
-      <section id="hakkimizda" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="hakkimizda" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-xs font-semibold mb-3">
@@ -391,7 +470,7 @@ export default function HomePage() {
             <div className="mt-8 flex items-center gap-4">
               <button
                 onClick={() => setIsBookingOpen(true)}
-                className="px-5 py-3 rounded-xl bg-[#D4AF37] hover:bg-[#E5BF47] text-black font-extrabold text-xs transition"
+                className="px-5 py-3 rounded-xl bg-[#D4AF37] hover:bg-[#E5BF47] text-black font-extrabold text-xs transition cursor-pointer"
               >
                 Hemen Randevu Al
               </button>
@@ -409,24 +488,32 @@ export default function HomePage() {
 
           {/* Visual Cards */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden border border-zinc-800 shadow-xl">
+            <div className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-zinc-800 shadow-xl group">
               <Image
                 src="https://images.unsplash.com/photo-1560750588-73207b1ef5b8?w=800&auto=format&fit=crop&q=80"
                 alt="Simay Yorulmaz Cilt Bakımı"
                 fill
-                className="object-cover"
+                className="object-cover group-hover:scale-105 transition duration-500"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent flex items-end p-4">
+                <span className="text-xs font-bold text-white">Butik Salon Atmosferi</span>
+              </div>
             </div>
+
             <div className="space-y-4">
-              <div className="relative aspect-square rounded-2xl overflow-hidden border border-zinc-800 shadow-xl">
+              <div className="relative aspect-square rounded-3xl overflow-hidden border border-zinc-800 shadow-xl group">
                 <Image
                   src="https://images.unsplash.com/photo-1604654894610-df63bc536371?w=800&auto=format&fit=crop&q=80"
                   alt="Nail Art Protez Tırnak"
                   fill
-                  className="object-cover"
+                  className="object-cover group-hover:scale-105 transition duration-500"
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent flex items-end p-4">
+                  <span className="text-xs font-bold text-white">Steril Cihazlı Manikür</span>
+                </div>
               </div>
-              <div className="p-5 rounded-2xl bg-zinc-900/90 border border-[#D4AF37]/30 text-center">
+
+              <div className="p-5 rounded-3xl bg-zinc-900/90 border border-[#D4AF37]/30 text-center">
                 <div className="text-2xl font-black text-[#D4AF37]">4.9 / 5.0</div>
                 <div className="flex justify-center gap-1 text-amber-400 my-1">
                   {[...Array(5)].map((_, i) => (
@@ -440,74 +527,46 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Gallery Section (#galeri) */}
-      <section id="galeri" className="py-20 bg-zinc-950/40 border-t border-white/5">
+      {/* Expanded Gallery Section (#galeri) */}
+      <section id="galeri" className="py-24 bg-zinc-950/40 border-t border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-xl mx-auto mb-10">
-            <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-wider">İşlem & Salon Galerisi</span>
-            <h2 className="font-serif text-3xl font-extrabold text-white mt-1">
-              Işıltılı Dönüşümler
+          <div className="text-center max-w-xl mx-auto mb-12">
+            <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-wider">İşlem & Salon Portfolyosu</span>
+            <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-white mt-1">
+              Görsel Galeri & Işıltılı Sonuçlar
             </h2>
             <p className="text-xs text-zinc-400 mt-2">
-              Salondan kareler, protez tırnak çalışmaları ve cilt bakım sonuçları.
+              Salondan kareler, protez tırnak sanatı, ipek kirpik tasarımları ve cilt bakım sonuçları.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <div className="relative aspect-square rounded-2xl overflow-hidden border border-zinc-800 group">
-              <Image
-                src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&auto=format&fit=crop&q=80"
-                alt="Cilt Bakımı Protokolü"
-                fill
-                className="object-cover group-hover:scale-105 transition duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">
-                <span className="text-xs font-semibold text-white">Hydrafacial Seansı</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {SALON_GALLERY_IMAGES.map((item) => (
+              <div
+                key={item.id}
+                className="group relative aspect-square rounded-2xl overflow-hidden border border-zinc-800 shadow-md bg-zinc-950"
+              >
+                <Image
+                  src={item.image}
+                  alt={item.title}
+                  fill
+                  className="object-cover group-hover:scale-105 transition duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition duration-300 flex flex-col justify-end p-4">
+                  <span className="text-[10px] uppercase font-bold text-[#D4AF37]">
+                    {item.category}
+                  </span>
+                  <h4 className="text-xs font-bold text-white mt-0.5">{item.title}</h4>
+                </div>
               </div>
-            </div>
-
-            <div className="relative aspect-square rounded-2xl overflow-hidden border border-zinc-800 group">
-              <Image
-                src="https://images.unsplash.com/photo-1632345031435-8727f6897d53?w=600&auto=format&fit=crop&q=80"
-                alt="Jel Tırnak Nail Art"
-                fill
-                className="object-cover group-hover:scale-105 transition duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">
-                <span className="text-xs font-semibold text-white">Özel Nail Art Tasarımı</span>
-              </div>
-            </div>
-
-            <div className="relative aspect-square rounded-2xl overflow-hidden border border-zinc-800 group">
-              <Image
-                src="https://images.unsplash.com/photo-1512290900672-1f02e6a39343?w=600&auto=format&fit=crop&q=80"
-                alt="Lazer Epilasyon"
-                fill
-                className="object-cover group-hover:scale-105 transition duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">
-                <span className="text-xs font-semibold text-white">Buz Başlıklı Lazer</span>
-              </div>
-            </div>
-
-            <div className="relative aspect-square rounded-2xl overflow-hidden border border-zinc-800 group">
-              <Image
-                src="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&auto=format&fit=crop&q=80"
-                alt="İpek Kirpik & Kaş"
-                fill
-                className="object-cover group-hover:scale-105 transition duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3">
-                <span className="text-xs font-semibold text-white">Volume İpek Kirpik</span>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Reviews Section (#yorumlar) */}
-      <section id="yorumlar" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-xl mx-auto mb-10">
+      {/* Client Reviews Section (#yorumlar) */}
+      <section id="yorumlar" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-xl mx-auto mb-12">
           <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-wider">Danışan Görüşleri</span>
           <h2 className="font-serif text-3xl font-extrabold text-white mt-1">
             Misafirlerimiz Ne Diyor?
@@ -518,7 +577,7 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3">
+          <div className="p-6 rounded-3xl bg-zinc-950/80 border border-zinc-800 space-y-4">
             <div className="flex gap-1 text-amber-400">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-4 h-4 fill-current" />
@@ -527,12 +586,13 @@ export default function HomePage() {
             <p className="text-xs text-zinc-300 leading-relaxed italic">
               “Simay Hanım’ın ilgisi ve profesyonelliği harika. Demirköy’de böyle nezih ve kaliteli bir merkezin olması büyük şans. Cilt bakımından sonra yüzüm pırıl pırıl parladı!”
             </p>
-            <div className="pt-2 border-t border-zinc-800 text-xs font-bold text-white">
-              Büşra D. <span className="text-[10px] text-[#D4AF37] font-normal">· Demirköy</span>
+            <div className="pt-2 border-t border-zinc-800 text-xs font-bold text-white flex items-center justify-between">
+              <span>Büşra D.</span>
+              <span className="text-[10px] text-[#D4AF37] font-normal">Demirköy</span>
             </div>
           </div>
 
-          <div className="p-6 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3">
+          <div className="p-6 rounded-3xl bg-zinc-950/80 border border-zinc-800 space-y-4">
             <div className="flex gap-1 text-amber-400">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-4 h-4 fill-current" />
@@ -541,29 +601,31 @@ export default function HomePage() {
             <p className="text-xs text-zinc-300 leading-relaxed italic">
               “Buz lazer seanslarına başladım, hiç acı hissetmedim. Ortam son derece temiz ve hijyenik. Tırnak yaptırmaya da geliyorum, nail art konusunda çok yetenekliler.”
             </p>
-            <div className="pt-2 border-t border-zinc-800 text-xs font-bold text-white">
-              Elif K. <span className="text-[10px] text-[#D4AF37] font-normal">· Kırklareli</span>
+            <div className="pt-2 border-t border-zinc-800 text-xs font-bold text-white flex items-center justify-between">
+              <span>Elif K.</span>
+              <span className="text-[10px] text-[#D4AF37] font-normal">Kırklareli</span>
             </div>
           </div>
 
-          <div className="p-6 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3">
+          <div className="p-6 rounded-3xl bg-zinc-950/80 border border-zinc-800 space-y-4">
             <div className="flex gap-1 text-amber-400">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-4 h-4 fill-current" />
               ))}
             </div>
             <p className="text-xs text-zinc-300 leading-relaxed italic">
-              “Web sitesinden sepetten C vitamini serum siparişi verdim, WhatsApp üzerinden hemen yanıtlayıp hazırladılar. Ürünler çok kaliteli, teşekkürler Simay Hanım.”
+              “Web sitesinden sepete C vitamini serum ekledim, WhatsApp üzerinden anında teyit ettiler. Ürünler çok kaliteli, paketleme çok özenliydi. Teşekkürler!”
             </p>
-            <div className="pt-2 border-t border-zinc-800 text-xs font-bold text-white">
-              Selin Y. <span className="text-[10px] text-[#D4AF37] font-normal">· İğneada</span>
+            <div className="pt-2 border-t border-zinc-800 text-xs font-bold text-white flex items-center justify-between">
+              <span>Selin Y.</span>
+              <span className="text-[10px] text-[#D4AF37] font-normal">İğneada</span>
             </div>
           </div>
         </div>
       </section>
 
       {/* Location & Contact Section (#iletisim) */}
-      <section id="iletisim" className="py-20 bg-zinc-950/60 border-t border-white/5">
+      <section id="iletisim" className="py-24 bg-zinc-950/60 border-t border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             <div>
@@ -628,7 +690,7 @@ export default function HomePage() {
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Simay Yorulmaz Health & Beauty Demirköy')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-5 py-3 rounded-xl bg-[#D4AF37] hover:bg-[#E5BF47] text-black font-extrabold text-xs transition flex items-center justify-center gap-2"
+                  className="px-5 py-3 rounded-xl bg-[#D4AF37] hover:bg-[#E5BF47] text-black font-extrabold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <MapPin className="w-4 h-4" />
                   <span>Google Haritalarda Aç</span>
