@@ -42,6 +42,14 @@ interface SalonContextType {
   isSlotBooked: (date: string, time: string, excludeAptId?: string) => boolean;
   getOccupiedSlotsForDate: (date: string) => string[];
 
+  // Blocked Dates and Slots Management
+  blockedDates: string[];
+  blockedSlots: string[];
+  toggleBlockDate: (date: string) => void;
+  toggleBlockSlot: (date: string, time: string) => void;
+  isDateBlocked: (date: string) => boolean;
+  isSlotBlocked: (date: string, time: string) => boolean;
+
   // Cart & Shopping
   cart: CartItem[];
   addToCart: (product: SalonProduct) => void;
@@ -74,6 +82,8 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<SalonProduct[]>(INITIAL_PRODUCTS);
   const [appointments, setAppointments] = useState<SalonAppointment[]>(INITIAL_APPOINTMENTS);
   const [timeSlots, setTimeSlots] = useState<string[]>(INITIAL_TIME_SLOTS);
+  const [blockedDates, setBlockedDates] = useState<string[]>([]);
+  const [blockedSlots, setBlockedSlots] = useState<string[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -121,6 +131,12 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
 
       const savedSlots = localStorage.getItem('sy_time_slots');
       if (savedSlots) setTimeSlots(JSON.parse(savedSlots));
+
+      const savedBlockedDates = localStorage.getItem('sy_blocked_dates');
+      if (savedBlockedDates) setBlockedDates(JSON.parse(savedBlockedDates));
+
+      const savedBlockedSlots = localStorage.getItem('sy_blocked_slots');
+      if (savedBlockedSlots) setBlockedSlots(JSON.parse(savedBlockedSlots));
     } catch {
       // Ignore parse errors
     }
@@ -262,10 +278,66 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const saveBlockedDates = (dates: string[]) => {
+    setBlockedDates(dates);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sy_blocked_dates', JSON.stringify(dates));
+    }
+  };
+
+  const saveBlockedSlots = (slots: string[]) => {
+    setBlockedSlots(slots);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sy_blocked_slots', JSON.stringify(slots));
+    }
+  };
+
+  const toggleBlockDate = (date: string) => {
+    const isBlocked = blockedDates.includes(date);
+    let updated: string[];
+    if (isBlocked) {
+      updated = blockedDates.filter((d) => d !== date);
+      showNotification(`${date} tarihi randevulara açıldı.`);
+    } else {
+      updated = [...blockedDates, date];
+      showNotification(`${date} tarihi randevulara kapatıldı.`);
+    }
+    saveBlockedDates(updated);
+  };
+
+  const toggleBlockSlot = (date: string, time: string) => {
+    const key = `${date}_${time}`;
+    const isBlocked = blockedSlots.includes(key);
+    let updated: string[];
+    if (isBlocked) {
+      updated = blockedSlots.filter((k) => k !== key);
+      showNotification(`${date} ${time} saati randevulara açıldı.`);
+    } else {
+      updated = [...blockedSlots, key];
+      showNotification(`${date} ${time} saati randevulara kapatıldı.`);
+    }
+    saveBlockedSlots(updated);
+  };
+
+  const isDateBlocked = (date: string) => {
+    return blockedDates.includes(date);
+  };
+
+  const isSlotBlocked = (date: string, time: string) => {
+    return blockedDates.includes(date) || blockedSlots.includes(`${date}_${time}`);
+  };
+
   const getOccupiedSlotsForDate = (date: string) => {
-    return appointments
+    if (blockedDates.includes(date)) {
+      return [...timeSlots];
+    }
+    const booked = appointments
       .filter((a) => a.date === date && a.status !== 'IPTAL')
       .map((a) => a.time);
+    const blocked = blockedSlots
+      .filter((k) => k.startsWith(`${date}_`))
+      .map((k) => k.replace(`${date}_`, ''));
+    return Array.from(new Set([...booked, ...blocked]));
   };
 
   // Cart Management
@@ -368,6 +440,12 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
         resetTimeSlots,
         isSlotBooked,
         getOccupiedSlotsForDate,
+        blockedDates,
+        blockedSlots,
+        toggleBlockDate,
+        toggleBlockSlot,
+        isDateBlocked,
+        isSlotBlocked,
         cart,
         addToCart,
         removeFromCart,

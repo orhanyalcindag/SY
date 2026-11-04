@@ -42,6 +42,8 @@ import {
   AlertCircle,
   X,
   Percent,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
@@ -65,6 +67,12 @@ export default function AdminPage() {
     resetTimeSlots,
     isSlotBooked,
     getOccupiedSlotsForDate,
+    blockedDates,
+    blockedSlots,
+    toggleBlockDate,
+    toggleBlockSlot,
+    isDateBlocked,
+    isSlotBlocked,
     notification,
   } = useSalon();
 
@@ -87,6 +95,7 @@ export default function AdminPage() {
 
   // Slot Management State
   const [newSlotInput, setNewSlotInput] = useState('');
+  const [manualBlockDateInput, setManualBlockDateInput] = useState('2026-11-08');
 
   // Weekly Dashboard Appointment Detail Modal
   const [selectedAppointment, setSelectedAppointment] = useState<SalonAppointment | null>(null);
@@ -124,6 +133,7 @@ export default function AdminPage() {
     const formattedToday = `${yyyy}-${mm}-${dd}`;
     setTodayStr(formattedToday);
     setNewDate(formattedToday);
+    setManualBlockDateInput(formattedToday);
 
     // Calculate Monday of the current week
     const day = now.getDay(); // 0 is Sunday, 1 is Monday
@@ -189,11 +199,22 @@ export default function AdminPage() {
   );
   const totalWeeklySlots = timeSlots.length * 7;
   const bookedWeeklySlots = weekAppointments.length;
-  const availableWeeklySlots = Math.max(0, totalWeeklySlots - bookedWeeklySlots);
-  const weeklyOccupancyRate = totalWeeklySlots > 0 ? Math.round((bookedWeeklySlots / totalWeeklySlots) * 100) : 0;
+
+  // Calculate blocked slots in current week
+  const blockedWeeklySlots = weekDays.reduce((acc, day) => {
+    if (isDateBlocked(day.dateStr)) {
+      return acc + timeSlots.length;
+    }
+    const dayBlockedSlots = timeSlots.filter((slot) => isSlotBlocked(day.dateStr, slot));
+    return acc + dayBlockedSlots.length;
+  }, 0);
+
+  const availableWeeklySlots = Math.max(0, totalWeeklySlots - bookedWeeklySlots - blockedWeeklySlots);
+  const activeBookableSlots = Math.max(1, totalWeeklySlots - blockedWeeklySlots);
+  const weeklyOccupancyRate = Math.round((bookedWeeklySlots / activeBookableSlots) * 100);
   const weeklyRevenue = weekAppointments.reduce((sum, a) => sum + a.price, 0);
 
-  // Handle Quick Booking Submit (with past date & occupied slot blocking)
+  // Handle Quick Booking Submit (with past date, closed day & occupied slot blocking)
   const handleCreateAppointment = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
@@ -213,7 +234,19 @@ export default function AdminPage() {
       return;
     }
 
-    // 2. Occupied slot check
+    // 2. Closed Day Check
+    if (isDateBlocked(newDate)) {
+      setFormError(`Seçilen ${newDate} tarihinde salon hizmete kapalıdır. Lütfen açık olan bir gün seçiniz.`);
+      return;
+    }
+
+    // 3. Closed Slot Check
+    if (isSlotBlocked(newDate, newTime)) {
+      setFormError(`Seçilen ${newDate} tarihinde saat ${newTime} randevulara kapatılmıştır. Lütfen müsait bir saat seçiniz.`);
+      return;
+    }
+
+    // 4. Occupied slot check
     if (isSlotBooked(newDate, newTime)) {
       setFormError(`Seçilen ${newDate} tarihinde saat ${newTime} doludur. Lütfen müsait bir saat seçiniz.`);
       return;
@@ -241,7 +274,7 @@ export default function AdminPage() {
 
   // Open Quick Booking from an empty slot in the Weekly Dashboard
   const handleOpenSlotBooking = (dateStr: string, slotTime: string) => {
-    if (dateStr < todayStr) return; // Ignore past dates
+    if (dateStr < todayStr || isDateBlocked(dateStr) || isSlotBlocked(dateStr, slotTime)) return;
     setNewDate(dateStr);
     setNewTime(slotTime);
     setFormError('');
@@ -386,7 +419,9 @@ export default function AdminPage() {
             <div className="text-2xl font-black text-[#D4AF37] mt-2">
               %{weeklyOccupancyRate}
             </div>
-            <p className="text-[11px] text-zinc-500 mt-1">{bookedWeeklySlots} Dolu / {availableWeeklySlots} Boş Slot</p>
+            <p className="text-[11px] text-zinc-500 mt-1">
+              {bookedWeeklySlots} Dolu / {availableWeeklySlots} Boş Slot
+            </p>
           </div>
 
           <div className="p-5 rounded-2xl bg-zinc-950/90 border border-zinc-800/90 relative overflow-hidden">
@@ -417,15 +452,15 @@ export default function AdminPage() {
 
           <div className="p-5 rounded-2xl bg-zinc-950/90 border border-zinc-800/90 relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-zinc-400">Randevu Slotları</span>
-              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
-                <Clock className="w-4 h-4" />
+              <span className="text-xs font-semibold text-zinc-400">Kapalı Slot & Gün</span>
+              <div className="p-2 rounded-xl bg-red-500/10 text-red-400">
+                <Lock className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-black text-blue-400 mt-2">
-              {timeSlots.length} Saat / Gün
+            <div className="text-2xl font-black text-red-400 mt-2">
+              {blockedWeeklySlots} Slot
             </div>
-            <p className="text-[11px] text-zinc-500 mt-1">Slotları panelden düzenleyin</p>
+            <p className="text-[11px] text-zinc-500 mt-1">Bu haftaki kilitli alanlar</p>
           </div>
         </div>
 
@@ -464,7 +499,7 @@ export default function AdminPage() {
             }`}
           >
             <Clock className="w-4 h-4" />
-            <span>Saat & Slot Yönetimi ({timeSlots.length})</span>
+            <span>Saat, Slot & Gün Kapatma ({timeSlots.length})</span>
           </button>
 
           <button
@@ -519,7 +554,7 @@ export default function AdminPage() {
                   </span>
                 </div>
                 <p className="text-xs text-zinc-400">
-                  {weekStartFormatted} — {weekEndFormatted} tarihleri arasındaki tüm seanslar ve boş saatler.
+                  {weekStartFormatted} — {weekEndFormatted} tarihleri arasındaki tüm seanslar, boş ve kapalı saatler.
                 </p>
               </div>
 
@@ -559,96 +594,145 @@ export default function AdminPage() {
             </div>
 
             {/* Weekly Capacity Indicators */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
-                  <span className="text-xs text-zinc-300 font-medium">Boş & Rezerve Edilebilir</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-zinc-500 border border-zinc-400" />
+                  <span className="text-xs text-zinc-300 font-medium">Boş Slotlar</span>
                 </div>
-                <span className="text-xs font-bold text-emerald-400">{availableWeeklySlots} Slot</span>
+                <span className="text-xs font-bold text-zinc-200">{availableWeeklySlots} Boş</span>
               </div>
 
               <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-[#D4AF37] shadow-sm shadow-[#D4AF37]/50" />
-                  <span className="text-xs text-zinc-300 font-medium">Dolu Randevular</span>
+                  <span className="text-xs text-zinc-300 font-medium">Dolu Seanslar</span>
                 </div>
-                <span className="text-xs font-bold text-[#D4AF37]">{bookedWeeklySlots} Seans</span>
+                <span className="text-xs font-bold text-[#D4AF37]">{bookedWeeklySlots} Dolu</span>
               </div>
 
               <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-3 h-3 rounded-full bg-zinc-600" />
-                  <span className="text-xs text-zinc-400 font-medium">Geçmiş Tarih Koruması</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm shadow-red-500/50" />
+                  <span className="text-xs text-zinc-300 font-medium">Kapalı / Bloke</span>
+                </div>
+                <span className="text-xs font-bold text-red-400">{blockedWeeklySlots} Kapalı</span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-zinc-700" />
+                  <span className="text-xs text-zinc-400 font-medium">Geçmiş Günler</span>
                 </div>
                 <span className="text-xs font-bold text-zinc-400">Kilitli</span>
               </div>
             </div>
 
-            {/* Weekly Calendar Matrix */}
-            <div className="rounded-2xl bg-zinc-950 border border-zinc-800 overflow-hidden shadow-2xl">
+            {/* Equal-Sized Weekly Calendar Matrix Table */}
+            <div className="rounded-2xl bg-zinc-950 border border-zinc-800 shadow-2xl">
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[950px]">
+                <table className="w-full text-left border-collapse table-fixed min-w-[1020px]">
                   <thead>
                     <tr className="border-b border-zinc-800 bg-[#0F0F12]">
-                      <th className="py-3 px-4 text-[11px] font-bold text-zinc-400 uppercase tracking-wider w-24 sticky left-0 bg-[#0F0F12] z-10 border-r border-zinc-800">
+                      {/* Fixed Time column width */}
+                      <th className="w-20 py-3.5 px-3 text-[11px] font-bold text-zinc-400 uppercase tracking-wider sticky left-0 bg-[#0F0F12] z-20 border-r border-zinc-800 text-center">
                         Saat
                       </th>
-                      {weekDays.map((day) => (
-                        <th
-                          key={day.dateStr}
-                          className={`py-3 px-3 text-center border-r border-zinc-800 last:border-r-0 ${
-                            day.isToday ? 'bg-[#D4AF37]/10' : ''
-                          }`}
-                        >
-                          <div className="text-[11px] font-semibold text-zinc-400">{day.dayName}</div>
-                          <div className="flex items-center justify-center gap-1.5 mt-0.5">
-                            <span
-                              className={`text-sm font-extrabold ${
-                                day.isToday ? 'text-[#D4AF37]' : 'text-zinc-200'
-                              }`}
-                            >
-                              {day.dayNum} {day.monthName}
-                            </span>
-                            {day.isToday && (
-                              <span className="px-1.5 py-0.2 rounded bg-[#D4AF37] text-black text-[9px] font-black uppercase">
-                                Bugün
+
+                      {/* 7 Strictly Equal Day Columns */}
+                      {weekDays.map((day) => {
+                        const dayBlocked = isDateBlocked(day.dateStr);
+
+                        return (
+                          <th
+                            key={day.dateStr}
+                            className={`w-[calc((100%-80px)/7)] py-3 px-2 text-center border-r border-zinc-800 last:border-r-0 ${
+                              day.isToday ? 'bg-[#D4AF37]/10' : ''
+                            } ${dayBlocked ? 'bg-red-950/20' : ''}`}
+                          >
+                            <div className="text-[11px] font-semibold text-zinc-400">{day.dayName}</div>
+                            <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                              <span
+                                className={`text-sm font-extrabold ${
+                                  dayBlocked
+                                    ? 'text-red-400'
+                                    : day.isToday
+                                    ? 'text-[#D4AF37]'
+                                    : 'text-zinc-200'
+                                }`}
+                              >
+                                {day.dayNum} {day.monthName}
                               </span>
-                            )}
-                          </div>
-                        </th>
-                      ))}
+                              {day.isToday && !dayBlocked && (
+                                <span className="px-1.5 py-0.2 rounded bg-[#D4AF37] text-black text-[9px] font-black uppercase">
+                                  Bugün
+                                </span>
+                              )}
+                              {dayBlocked && (
+                                <span className="px-1.5 py-0.2 rounded bg-red-600 text-white text-[9px] font-black uppercase">
+                                  Kapalı
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Day Close / Open Toggle Button */}
+                            <button
+                              type="button"
+                              onClick={() => toggleBlockDate(day.dateStr)}
+                              className={`mt-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold border transition inline-flex items-center gap-1 cursor-pointer ${
+                                dayBlocked
+                                  ? 'bg-red-900/40 border-red-700 text-red-300 hover:bg-red-800/50'
+                                  : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                              }`}
+                              title={dayBlocked ? 'Günü tekrar randevulara aç' : 'Bu günü tamamen kapat'}
+                            >
+                              {dayBlocked ? (
+                                <>
+                                  <Unlock className="w-2.5 h-2.5 text-emerald-400" />
+                                  <span>Günü Aç</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Lock className="w-2.5 h-2.5 text-zinc-400" />
+                                  <span>Günü Kapat</span>
+                                </>
+                              )}
+                            </button>
+                          </th>
+                        );
+                      })}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-900">
-                    {timeSlots.map((slot) => (
-                      <tr key={slot} className="hover:bg-zinc-900/30 transition">
-                        {/* Time Slot Label */}
-                        <td className="py-3 px-4 font-mono text-xs font-bold text-[#D4AF37] sticky left-0 bg-zinc-950 border-r border-zinc-800 z-10">
-                          <div className="flex items-center gap-1.5">
+                    {timeSlots.map((slot, slotIndex) => (
+                      <tr key={slot} className="hover:bg-zinc-900/20 transition">
+                        {/* Time Slot Label Cell */}
+                        <td className="w-20 h-[92px] p-2 font-mono text-xs font-bold text-[#D4AF37] sticky left-0 bg-zinc-950 border-r border-zinc-800 z-10 text-center align-middle">
+                          <div className="flex flex-col items-center justify-center gap-1">
                             <Clock className="w-3.5 h-3.5 text-zinc-500" />
                             <span>{slot}</span>
                           </div>
                         </td>
 
-                        {/* 7 Days of the Week */}
-                        {weekDays.map((day) => {
+                        {/* 7 Days of the Week (Equal Height & Width) */}
+                        {weekDays.map((day, dayIndex) => {
+                          const isBlocked = isDateBlocked(day.dateStr) || isSlotBlocked(day.dateStr, slot);
                           const apt = appointments.find(
                             (a) => a.date === day.dateStr && a.time === slot && a.status !== 'IPTAL'
                           );
 
+                          // 1. BOOKED APPOINTMENT CELL (DOLU)
                           if (apt) {
-                            // BOOKED CELL (DOLU)
                             return (
                               <td
                                 key={day.dateStr + slot}
-                                className={`p-2 border-r border-zinc-800/80 last:border-r-0 align-top ${
+                                className={`h-[92px] p-1.5 border-r border-zinc-800/80 last:border-r-0 align-middle ${
                                   day.isToday ? 'bg-[#D4AF37]/5' : ''
                                 }`}
                               >
                                 <div
                                   onClick={() => setSelectedAppointment(apt)}
-                                  className={`p-2.5 rounded-xl border transition cursor-pointer shadow-sm hover:scale-[1.02] ${
+                                  className={`w-full h-full min-h-[78px] rounded-xl border transition cursor-pointer shadow-sm hover:scale-[1.02] p-2 flex flex-col justify-between group relative ${
                                     apt.status === 'TAMAMLANDI'
                                       ? 'bg-emerald-950/40 border-emerald-700/60 hover:border-emerald-500'
                                       : apt.status === 'ISLEMDE'
@@ -658,64 +742,200 @@ export default function AdminPage() {
                                       : 'bg-zinc-900/90 border-zinc-700 hover:border-zinc-500'
                                   }`}
                                 >
-                                  <div className="flex items-center justify-between gap-1 mb-1">
-                                    <span className="font-bold text-xs text-white truncate max-w-[110px]" title={apt.clientName}>
-                                      {apt.clientName}
-                                    </span>
-                                    <span
-                                      className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase ${
-                                        apt.status === 'TAMAMLANDI'
-                                          ? 'bg-emerald-500/20 text-emerald-400'
-                                          : apt.status === 'ISLEMDE'
-                                          ? 'bg-blue-500/20 text-blue-400'
-                                          : apt.status === 'ONAYLANDI'
-                                          ? 'bg-[#D4AF37]/20 text-[#D4AF37]'
-                                          : 'bg-zinc-800 text-zinc-400'
-                                      }`}
-                                    >
-                                      {apt.status === 'TAMAMLANDI' ? 'TAMAM' : apt.status}
+                                  <div>
+                                    <div className="flex items-center justify-between gap-1 mb-0.5">
+                                      <span className="font-bold text-xs text-white truncate max-w-[95px]" title={apt.clientName}>
+                                        {apt.clientName}
+                                      </span>
+                                      <span
+                                        className={`text-[8px] px-1 py-0.2 rounded font-black uppercase ${
+                                          apt.status === 'TAMAMLANDI'
+                                            ? 'bg-emerald-500/20 text-emerald-400'
+                                            : apt.status === 'ISLEMDE'
+                                            ? 'bg-blue-500/20 text-blue-400'
+                                            : apt.status === 'ONAYLANDI'
+                                            ? 'bg-[#D4AF37]/20 text-[#D4AF37]'
+                                            : 'bg-zinc-800 text-zinc-400'
+                                        }`}
+                                      >
+                                        {apt.status === 'TAMAMLANDI' ? 'TAMAM' : apt.status}
+                                      </span>
+                                    </div>
+                                    <div className="text-[10px] text-zinc-300 truncate" title={apt.serviceName}>
+                                      {apt.serviceName}
+                                    </div>
+                                  </div>
+
+                                  <div className="text-[10px] font-bold text-[#D4AF37] mt-0.5 flex items-center justify-between">
+                                    <span>{formatCurrency(apt.price)}</span>
+                                    <span className="text-[9px] text-zinc-500 group-hover:text-zinc-300 font-mono">
+                                      {slot}
                                     </span>
                                   </div>
-                                  <div className="text-[10px] text-zinc-300 truncate" title={apt.serviceName}>
-                                    {apt.serviceName}
-                                  </div>
-                                  <div className="text-[10px] font-bold text-[#D4AF37] mt-1">
-                                    {formatCurrency(apt.price)}
+
+                                  {/* Floating Detail Bubble (Baloncuk) on Hover */}
+                                  <div
+                                    className={`absolute z-40 ${
+                                      slotIndex < 2 ? 'top-full mt-2' : 'bottom-full mb-2'
+                                    } ${
+                                      dayIndex === 0
+                                        ? 'left-0'
+                                        : dayIndex === 6
+                                        ? 'right-0'
+                                        : 'left-1/2 -translate-x-1/2'
+                                    } w-64 p-3 rounded-2xl bg-[#0F0F12] border border-[#D4AF37] text-white shadow-2xl shadow-black/95 backdrop-blur-md opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200`}
+                                  >
+                                    {/* Arrow pointing to cell */}
+                                    <div
+                                      className={`absolute ${
+                                        slotIndex < 2
+                                          ? '-top-1.5 border-l border-t'
+                                          : '-bottom-1.5 border-r border-b'
+                                      } ${
+                                        dayIndex === 0
+                                          ? 'left-6'
+                                          : dayIndex === 6
+                                          ? 'right-6'
+                                          : 'left-1/2 -translate-x-1/2'
+                                      } w-3 h-3 bg-[#0F0F12] border-[#D4AF37] rotate-45`}
+                                    />
+
+                                    <div className="relative z-10 space-y-1.5 text-left">
+                                      <div className="flex items-center justify-between pb-1.5 border-b border-zinc-800">
+                                        <div className="flex items-center gap-1.5 font-extrabold text-xs text-white">
+                                          <User className="w-3.5 h-3.5 text-[#D4AF37]" />
+                                          <span>{apt.clientName}</span>
+                                        </div>
+                                        <span
+                                          className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase ${
+                                            apt.status === 'TAMAMLANDI'
+                                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                              : apt.status === 'ISLEMDE'
+                                              ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                              : apt.status === 'ONAYLANDI'
+                                              ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30'
+                                              : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                                          }`}
+                                        >
+                                          {apt.status}
+                                        </span>
+                                      </div>
+
+                                      <div className="text-[11px] font-semibold text-zinc-200">
+                                        {apt.serviceName}
+                                      </div>
+
+                                      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-zinc-800/60">
+                                        <span className="font-mono text-zinc-400 flex items-center gap-1">
+                                          <Phone className="w-3 h-3 text-zinc-500" />
+                                          {apt.clientPhone}
+                                        </span>
+                                        <span className="font-black text-[#D4AF37]">
+                                          {formatCurrency(apt.price)}
+                                        </span>
+                                      </div>
+
+                                      <div className="flex items-center gap-2 text-[10px] text-zinc-400">
+                                        <Calendar className="w-3 h-3 text-zinc-500" />
+                                        <span>{apt.date} · {apt.time}</span>
+                                      </div>
+
+                                      {apt.notes && (
+                                        <div className="text-[10px] text-zinc-300 italic bg-black/50 p-1.5 rounded-lg border border-zinc-800/80">
+                                          &ldquo;{apt.notes}&rdquo;
+                                        </div>
+                                      )}
+
+                                      <div className="pt-1 text-[9px] text-[#D4AF37] flex items-center justify-center gap-1 border-t border-zinc-800/60 font-semibold">
+                                        <span>Tıklayarak durumu değiştirin / WhatsApp gönderin</span>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               </td>
                             );
                           }
 
-                          // EMPTY CELL (BOŞ / MÜSAİT VEYA GEÇMİŞ)
-                          if (day.isPast) {
+                          // 2. CLOSED / BLOCKED CELL (KAPALI)
+                          if (isBlocked) {
                             return (
                               <td
                                 key={day.dateStr + slot}
-                                className="p-2 border-r border-zinc-800/80 last:border-r-0 bg-zinc-950/40 align-middle text-center"
+                                className={`h-[92px] p-1.5 border-r border-zinc-800/80 last:border-r-0 align-middle ${
+                                  day.isToday ? 'bg-[#D4AF37]/5' : ''
+                                }`}
                               >
-                                <span className="text-[10px] text-zinc-600 font-medium select-none">
-                                  Geçmiş
-                                </span>
+                                <div className="w-full h-full min-h-[78px] rounded-xl bg-red-950/20 border border-red-900/40 hover:border-red-600/60 flex flex-col items-center justify-center p-2 transition text-center group relative">
+                                  <Lock className="w-3.5 h-3.5 text-red-400 mb-0.5" />
+                                  <span className="text-xs font-bold text-red-400">Kapalı</span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (isDateBlocked(day.dateStr)) {
+                                        toggleBlockDate(day.dateStr);
+                                      } else {
+                                        toggleBlockSlot(day.dateStr, slot);
+                                      }
+                                    }}
+                                    className="text-[10px] text-zinc-400 hover:text-white underline mt-0.5 cursor-pointer"
+                                    title="Bu saati tekrar randevuya aç"
+                                  >
+                                    Tekrar Aç
+                                  </button>
+                                </div>
                               </td>
                             );
                           }
 
+                          // 3. PAST DATE CELL (GEÇMİŞ)
+                          if (day.isPast) {
+                            return (
+                              <td
+                                key={day.dateStr + slot}
+                                className="h-[92px] p-1.5 border-r border-zinc-800/80 last:border-r-0 align-middle"
+                              >
+                                <div className="w-full h-full min-h-[78px] rounded-xl bg-zinc-950/60 border border-zinc-900/60 flex items-center justify-center text-center select-none">
+                                  <span className="text-xs text-zinc-600 font-medium">
+                                    Geçmiş
+                                  </span>
+                                </div>
+                              </td>
+                            );
+                          }
+
+                          // 4. AVAILABLE CELL (BOŞ - HEPSİ EŞİT)
                           return (
                             <td
                               key={day.dateStr + slot}
-                              className={`p-2 border-r border-zinc-800/80 last:border-r-0 align-middle ${
+                              className={`h-[92px] p-1.5 border-r border-zinc-800/80 last:border-r-0 align-middle ${
                                 day.isToday ? 'bg-[#D4AF37]/5' : ''
                               }`}
                             >
-                              <button
+                              <div
                                 onClick={() => handleOpenSlotBooking(day.dateStr, slot)}
-                                className="w-full h-full py-2.5 px-2 rounded-xl border border-dashed border-zinc-800/90 hover:border-emerald-500/60 hover:bg-emerald-950/20 text-zinc-500 hover:text-emerald-400 text-[11px] font-semibold transition flex items-center justify-center gap-1 group cursor-pointer"
-                                title={`${day.dayName} ${slot} için hızlı randevu kaydı yap`}
+                                className="w-full h-full min-h-[78px] rounded-xl border border-dashed border-zinc-800/80 hover:border-[#D4AF37]/60 hover:bg-[#D4AF37]/5 transition-all flex flex-col items-center justify-center p-2 relative group cursor-pointer"
                               >
-                                <Plus className="w-3 h-3 group-hover:scale-110 transition" />
-                                <span>Boş Slot</span>
-                              </button>
+                                <span className="text-xs font-semibold text-zinc-500 group-hover:text-[#D4AF37] transition">
+                                  Boş
+                                </span>
+                                <span className="text-[10px] text-zinc-600 group-hover:text-[#D4AF37] opacity-0 group-hover:opacity-100 transition flex items-center gap-0.5 mt-0.5">
+                                  <Plus className="w-2.5 h-2.5" /> Randevu
+                                </span>
+
+                                {/* Quick button to close/block this hour */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleBlockSlot(day.dateStr, slot);
+                                  }}
+                                  className="absolute top-1 right-1 p-1 rounded-md text-zinc-600 hover:text-red-400 hover:bg-zinc-800/80 transition opacity-0 group-hover:opacity-100"
+                                  title={`${day.dayName} ${slot} saatini randevulara kapat`}
+                                >
+                                  <Lock className="w-3 h-3" />
+                                </button>
+                              </div>
                             </td>
                           );
                         })}
@@ -819,9 +1039,11 @@ export default function AdminPage() {
                       >
                         {timeSlots.map((slot) => {
                           const occupied = isSlotBooked(newDate, slot);
+                          const blocked = isSlotBlocked(newDate, slot);
+                          const unavailable = occupied || blocked;
                           return (
-                            <option key={slot} value={slot} disabled={occupied}>
-                              {slot} {occupied ? '— (DOLU)' : '— (Müsait)'}
+                            <option key={slot} value={slot} disabled={unavailable}>
+                              {slot} {blocked ? '— (KAPALI)' : occupied ? '— (DOLU)' : '— (Müsait)'}
                             </option>
                           );
                         })}
@@ -998,16 +1220,16 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 3: SLOT MANAGEMENT (Randevu Saatleri & Slot Yönetimi) */}
+        {/* TAB 3: SLOT & DAY MANAGEMENT (Randevu Saatleri, Slot ve Gün Kapatma) */}
         {activeTab === 'slots' && (
           <div className="space-y-6">
             <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h3 className="font-serif font-bold text-base text-white">
-                  Randevu Saatleri & Slot Düzenleme
+                  Randevu Saatleri & Kapalı Gün/Saat Ayarları
                 </h3>
                 <p className="text-xs text-zinc-400 mt-1 max-w-2xl">
-                  Salonunuzun açık olduğu saat dilimlerini belirleyin. Buraya eklediğiniz veya sildiğiniz saatler anında hem <strong>web sitesindeki randevu alma penceresine</strong> hem de <strong>haftalık takvim tablosuna</strong> yansır.
+                  Salonunuzun açık olduğu saat dilimlerini belirleyin veya istediğiniz özel günleri/saatleri randevuya kapatın. Buradaki değişiklikler hem <strong>web sitesindeki müşteri randevu penceresine</strong> hem de <strong>haftalık takvim tablosuna</strong> anında yansır.
                 </p>
               </div>
 
@@ -1019,6 +1241,74 @@ export default function AdminPage() {
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Varsayılan Saatlere Sıfırla</span>
               </button>
+            </div>
+
+            {/* Block / Close Specific Day or Date Box */}
+            <div className="p-6 rounded-2xl bg-zinc-950/90 border border-red-900/40 space-y-4">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-red-400" />
+                <h4 className="text-sm font-bold text-white">Özel Gün Kapatma / Tatil Kilitleme</h4>
+              </div>
+              <p className="text-xs text-zinc-400">
+                Resmi tatil, izin veya tadilat günlerinde salonu randevuya kapatabilirsiniz. Kapalı günlerde müşteriler randevu alamaz.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <input
+                  type="date"
+                  min={todayStr}
+                  value={manualBlockDateInput}
+                  onChange={(e) => setManualBlockDateInput(e.target.value)}
+                  className="w-full sm:w-60 px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-red-500"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => toggleBlockDate(manualBlockDateInput)}
+                  className={`w-full sm:w-auto px-5 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    isDateBlocked(manualBlockDateInput)
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                      : 'bg-red-600 hover:bg-red-500 text-white'
+                  }`}
+                >
+                  {isDateBlocked(manualBlockDateInput) ? (
+                    <>
+                      <Unlock className="w-3.5 h-3.5" />
+                      <span>{manualBlockDateInput} Tarihini Randevuya Aç</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>{manualBlockDateInput} Tarihini Tamamen Kapat</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {blockedDates.length > 0 && (
+                <div className="pt-2">
+                  <span className="text-[11px] font-semibold text-zinc-400 block mb-2">
+                    Şu Anda Kapalı Olan Günler:
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {blockedDates.map((d) => (
+                      <span
+                        key={d}
+                        className="px-3 py-1 rounded-lg bg-red-950/60 border border-red-800 text-red-300 text-xs font-medium flex items-center gap-2"
+                      >
+                        <span>{d}</span>
+                        <button
+                          onClick={() => toggleBlockDate(d)}
+                          className="hover:text-white cursor-pointer"
+                          title="Kilidi Aç"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Add New Time Slot Form */}
@@ -1060,6 +1350,7 @@ export default function AdminPage() {
                   const todayBooked = appointments.some(
                     (a) => a.date === todayStr && a.time === slot && a.status !== 'IPTAL'
                   );
+                  const todayClosed = isSlotBlocked(todayStr, slot);
 
                   return (
                     <div
@@ -1073,20 +1364,33 @@ export default function AdminPage() {
                         </div>
                         <span
                           className={`text-[10px] font-semibold block mt-1 ${
-                            todayBooked ? 'text-amber-400' : 'text-emerald-400'
+                            todayClosed
+                              ? 'text-red-400'
+                              : todayBooked
+                              ? 'text-amber-400'
+                              : 'text-emerald-400'
                           }`}
                         >
-                          {todayBooked ? 'Bugün: Dolu' : 'Bugün: Müsait'}
+                          {todayClosed ? 'Bugün: Kapalı' : todayBooked ? 'Bugün: Dolu' : 'Bugün: Müsait'}
                         </span>
                       </div>
 
-                      <button
-                        onClick={() => removeTimeSlot(slot)}
-                        className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-900 transition cursor-pointer"
-                        title={`"${slot}" saatini kaldır`}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => toggleBlockSlot(todayStr, slot)}
+                          className="p-1.5 rounded-lg text-zinc-500 hover:text-[#D4AF37] hover:bg-zinc-900 transition cursor-pointer"
+                          title={todayClosed ? 'Bugün için saati aç' : 'Bugün için saati kapat'}
+                        >
+                          {todayClosed ? <Unlock className="w-3.5 h-3.5 text-emerald-400" /> : <Lock className="w-3.5 h-3.5" />}
+                        </button>
+                        <button
+                          onClick={() => removeTimeSlot(slot)}
+                          className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-900 transition cursor-pointer"
+                          title={`"${slot}" saatini tamamen kaldır`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -1705,9 +2009,11 @@ export default function AdminPage() {
                   >
                     {timeSlots.map((slot) => {
                       const occupied = isSlotBooked(newDate, slot);
+                      const blocked = isSlotBlocked(newDate, slot);
+                      const unavailable = occupied || blocked;
                       return (
-                        <option key={slot} value={slot} disabled={occupied}>
-                          {slot} {occupied ? '— (DOLU)' : '— (Müsait)'}
+                        <option key={slot} value={slot} disabled={unavailable}>
+                          {slot} {blocked ? '— (KAPALI)' : occupied ? '— (DOLU)' : '— (Müsait)'}
                         </option>
                       );
                     })}

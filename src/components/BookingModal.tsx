@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Ban,
   AlertCircle,
+  Lock,
 } from 'lucide-react';
 
 export default function BookingModal() {
@@ -31,6 +32,8 @@ export default function BookingModal() {
     timeSlots,
     isSlotBooked,
     getOccupiedSlotsForDate,
+    isDateBlocked,
+    isSlotBlocked,
   } = useSalon();
 
   const [todayStr, setTodayStr] = useState('2026-11-04');
@@ -93,7 +96,19 @@ export default function BookingModal() {
       return;
     }
 
-    // 2. Full / Occupied slot check
+    // 2. Closed day check
+    if (isDateBlocked(date)) {
+      setErrorMessage('Seçilen tarihte salonumuz randevulara kapalıdır. Lütfen açık olan başka bir gün seçiniz.');
+      return;
+    }
+
+    // 3. Closed slot check
+    if (isSlotBlocked(date, time)) {
+      setErrorMessage(`Seçilen ${date} ${time} saati randevulara kapalıdır. Lütfen müsait olan başka bir saat seçiniz.`);
+      return;
+    }
+
+    // 4. Full / Occupied slot check
     if (isSlotBooked(date, time)) {
       setErrorMessage(`Seçilen ${date} ${time} saati doludur. Lütfen müsait olan başka bir saat seçiniz.`);
       return;
@@ -277,11 +292,21 @@ export default function BookingModal() {
                   setDate(e.target.value);
                   setErrorMessage('');
                 }}
-                className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                className={`w-full px-3 py-2 rounded-xl bg-zinc-950 border text-xs text-white focus:outline-none ${
+                  isDateBlocked(date)
+                    ? 'border-red-600 bg-red-950/20'
+                    : 'border-zinc-800 focus:border-[#D4AF37]'
+                }`}
               />
+              {isDateBlocked(date) && (
+                <div className="mt-2 p-2 rounded-lg bg-red-950/60 border border-red-800 text-red-300 text-[11px] flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                  <span>Salonumuz bu tarihte hizmete kapalıdır. Lütfen başka bir gün seçiniz.</span>
+                </div>
+              )}
             </div>
 
-            {/* Time Slot Selection (Occupied slots cannot be chosen) */}
+            {/* Time Slot Selection (Occupied or closed slots cannot be chosen) */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-[11px] text-zinc-400 flex items-center gap-1">
@@ -293,9 +318,13 @@ export default function BookingModal() {
                     <span className="w-2 h-2 rounded-full bg-emerald-400" />
                     <span>Müsait</span>
                   </span>
-                  <span className="flex items-center gap-1 text-zinc-500">
-                    <span className="w-2 h-2 rounded-full bg-red-500/60" />
+                  <span className="flex items-center gap-1 text-amber-500">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
                     <span>Dolu</span>
+                  </span>
+                  <span className="flex items-center gap-1 text-red-400">
+                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                    <span>Kapalı</span>
                   </span>
                 </div>
               </div>
@@ -303,30 +332,34 @@ export default function BookingModal() {
               {/* Interactive Time Slot Pills */}
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {timeSlots.map((slot) => {
-                  const isBooked = occupiedSlots.includes(slot);
-                  const isSelected = time === slot && !isBooked;
+                  const isBooked = isSlotBooked(date, slot);
+                  const isBlocked = isSlotBlocked(date, slot);
+                  const isUnavailable = isBooked || isBlocked;
+                  const isSelected = time === slot && !isUnavailable;
 
                   return (
                     <button
                       key={slot}
                       type="button"
-                      disabled={isBooked}
+                      disabled={isUnavailable}
                       onClick={() => {
                         setTime(slot);
                         setErrorMessage('');
                       }}
                       className={`py-2 px-2.5 rounded-xl text-xs font-semibold transition flex flex-col items-center justify-center gap-0.5 border ${
-                        isBooked
+                        isBlocked
+                          ? 'bg-red-950/30 border-red-900/50 text-red-400 cursor-not-allowed opacity-60'
+                          : isBooked
                           ? 'bg-zinc-950/80 border-zinc-900 text-zinc-600 cursor-not-allowed opacity-50'
                           : isSelected
                           ? 'bg-[#D4AF37] text-black border-[#D4AF37] font-extrabold shadow-md shadow-[#D4AF37]/20'
                           : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 cursor-pointer'
                       }`}
-                      title={isBooked ? 'Bu saat doludur' : 'Bu saat müsait'}
+                      title={isBlocked ? 'Bu saat randevulara kapalıdır' : isBooked ? 'Bu saat doludur' : 'Bu saat müsait'}
                     >
-                      <span className={isBooked ? 'line-through' : ''}>{slot}</span>
+                      <span className={isUnavailable ? 'line-through' : ''}>{slot}</span>
                       <span className="text-[9px] font-normal">
-                        {isBooked ? 'DOLU' : 'Müsait'}
+                        {isBlocked ? 'KAPALI' : isBooked ? 'DOLU' : 'Müsait'}
                       </span>
                     </button>
                   );
