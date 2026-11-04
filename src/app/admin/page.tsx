@@ -54,9 +54,16 @@ import {
   CreditCard,
   Receipt,
   Cloud,
+  Eye,
+  EyeOff,
+  LogOut,
+  Users,
+  Key,
+  ShieldCheck,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import FirebaseConnectModal from '@/components/FirebaseConnectModal';
+import { AdminUser } from '@/types';
 
 export default function AdminPage() {
   const {
@@ -98,14 +105,41 @@ export default function AdminPage() {
     deleteExpense,
     notification,
     isCloudConnected,
+    adminUsers,
+    currentUser,
+    isAuthLoading,
+    loginAdmin,
+    logoutAdmin,
+    addAdminUser,
+    deleteAdminUser,
+    updateAdminPassword,
   } = useSalon();
 
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
 
   // Active tab navigation
   const [activeTab, setActiveTab] = useState<
-    'weekly' | 'appointments' | 'clients' | 'packages' | 'slots' | 'services' | 'products' | 'finance'
+    'weekly' | 'appointments' | 'clients' | 'packages' | 'slots' | 'services' | 'products' | 'finance' | 'users'
   >('weekly');
+
+  // Login Form State
+  const [loginUsername, setLoginUsername] = useState('SY');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
+
+  // User Management State
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newRole, setNewRole] = useState<'Yönetici' | 'Personel'>('Personel');
+  const [userFormError, setUserFormError] = useState('');
+
+  // Change Password State
+  const [changePassUser, setChangePassUser] = useState<AdminUser | null>(null);
+  const [newPassInput, setNewPassInput] = useState('');
+  const [showNewPass, setShowNewPass] = useState(false);
 
   // Client-safe Date initialization
   const [todayStr, setTodayStr] = useState('2026-11-04');
@@ -500,6 +534,177 @@ export default function AdminPage() {
       (c.specialNotes && c.specialNotes.toLowerCase().includes(clientSearch.toLowerCase()))
   );
 
+  // Auth Form Handlers
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    const res = loginAdmin(loginUsername, loginPassword);
+    if (!res.success) {
+      setLoginError(res.message);
+    }
+  };
+
+  const handleCreateUserSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setUserFormError('');
+    if (!newUsername.trim() || !newPassword.trim()) {
+      setUserFormError('Lütfen kullanıcı adı ve şifre giriniz.');
+      return;
+    }
+    const res = addAdminUser({
+      username: newUsername,
+      password: newPassword,
+      name: newName.trim() || newUsername.trim(),
+      role: newRole,
+    });
+    if (!res.success) {
+      setUserFormError(res.message);
+      return;
+    }
+    setIsAddUserOpen(false);
+    setNewUsername('');
+    setNewPassword('');
+    setNewName('');
+    setNewRole('Personel');
+  };
+
+  const handleUpdatePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!changePassUser) return;
+    if (!newPassInput.trim()) return;
+    const res = updateAdminPassword(changePassUser.id, newPassInput);
+    if (res.success) {
+      setChangePassUser(null);
+      setNewPassInput('');
+    }
+  };
+
+  // Auth Guard
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0C] flex flex-col items-center justify-center p-4">
+        <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#997929] via-[#D4AF37] to-[#F3E5AB] p-[2px] animate-pulse">
+          <div className="w-full h-full bg-[#0A0A0C] rounded-3xl flex items-center justify-center">
+            <span className="font-serif font-black text-2xl text-[#D4AF37]">SY</span>
+          </div>
+        </div>
+        <p className="text-zinc-500 text-xs mt-4 tracking-widest uppercase font-semibold">
+          Yetkilendirme Kontrol Ediliyor...
+        </p>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0C] text-zinc-100 flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans selection:bg-[#D4AF37] selection:text-black">
+        {/* Ambient Luxury Glow */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#D4AF37]/10 rounded-full blur-[140px] pointer-events-none"></div>
+
+        <div className="w-full max-w-md relative z-10 space-y-6">
+          {/* Logo & Brand */}
+          <div className="text-center space-y-3">
+            <div className="inline-flex w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#997929] via-[#D4AF37] to-[#F3E5AB] p-[2px] shadow-[0_0_40px_rgba(212,175,55,0.25)]">
+              <div className="w-full h-full bg-[#0A0A0C] rounded-3xl flex items-center justify-center">
+                <span className="font-serif font-black text-2xl text-[#D4AF37]">SY</span>
+              </div>
+            </div>
+            <div>
+              <h1 className="font-serif font-black text-2xl tracking-wider text-white">
+                SİMAY YORULMAZ
+              </h1>
+              <p className="text-[11px] text-[#D4AF37] font-bold tracking-widest uppercase mt-1">
+                Yönetici & CRM Paneli Girişi
+              </p>
+            </div>
+          </div>
+
+          {/* Login Card */}
+          <div className="p-7 sm:p-8 rounded-3xl bg-zinc-950/90 border border-[#D4AF37]/30 shadow-2xl backdrop-blur-xl space-y-5">
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                  Kullanıcı Adı
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    value={loginUsername}
+                    onChange={(e) => setLoginUsername(e.target.value)}
+                    placeholder="SY"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-sm focus:outline-none focus:border-[#D4AF37] transition font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                  Giriş Şifresi
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type={showLoginPassword ? 'text' : 'password'}
+                    required
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="••••"
+                    className="w-full pl-10 pr-10 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-sm focus:outline-none focus:border-[#D4AF37] transition font-medium"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="p-1 text-zinc-500 hover:text-zinc-300 absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {loginError && (
+                <div className="p-3 rounded-xl bg-red-950/70 border border-red-800 text-red-200 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                  <span>{loginError}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#997929] via-[#D4AF37] to-[#F3E5AB] text-black font-extrabold text-sm tracking-wide hover:shadow-[0_0_30px_rgba(212,175,55,0.4)] transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Panele Giriş Yap</span>
+              </button>
+            </form>
+
+            <div className="pt-2 text-center border-t border-zinc-900 space-y-1">
+              <p className="text-[11px] text-zinc-500">
+                Kırklareli Demirköy Salon, Seans, Kasa & Danışan Otomasyonu
+              </p>
+              <p className="text-[10px] text-zinc-600">
+                Varsayılan Giriş: <strong className="text-zinc-400">SY</strong> / <strong className="text-zinc-400">3939</strong>
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <Link
+              href="/"
+              className="text-xs text-zinc-500 hover:text-[#D4AF37] transition inline-flex items-center gap-1.5"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Web Sitesine Geri Dön</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0A0A0C] text-zinc-100 font-sans selection:bg-[#D4AF37] selection:text-black">
       {/* Toast Notification */}
@@ -574,6 +779,27 @@ export default function AdminPage() {
             <ArrowLeft className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Web Sitesine Git</span>
           </Link>
+
+          {/* User Profile & Logout */}
+          <div className="flex items-center gap-2 pl-2 border-l border-zinc-800">
+            <div className="hidden md:flex flex-col text-right">
+              <span className="text-xs font-bold text-white leading-tight">
+                {currentUser.name}
+              </span>
+              <span className="text-[10px] text-[#D4AF37] font-semibold">
+                @{currentUser.username} · {currentUser.role}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={logoutAdmin}
+              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-900/60 text-red-300 hover:text-white text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
+              title="Yönetim Panelinden Güvenli Çıkış Yap"
+            >
+              <LogOut className="w-3.5 h-3.5 text-red-400" />
+              <span className="hidden sm:inline">Çıkış</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -733,6 +959,18 @@ export default function AdminPage() {
           >
             <ShoppingBag className="w-4 h-4" />
             <span>WhatsApp Mağaza ({products.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              activeTab === 'users'
+                ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
+                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Kullanıcılar ({adminUsers.length})</span>
           </button>
         </div>
 
@@ -2501,6 +2739,152 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* TAB 9: USERS & STAFF MANAGEMENT */}
+        {activeTab === 'users' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-[#D4AF37]" />
+                  <span>Yönetici & Personel Yetki Yönetimi</span>
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Yönetim paneline giriş yapabilecek kişileri belirleyin, yeni personel ekleyin veya şifreleri güncelleyin.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setUserFormError('');
+                  setNewUsername('');
+                  setNewPassword('');
+                  setNewName('');
+                  setNewRole('Personel');
+                  setIsAddUserOpen(true);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#997929] via-[#D4AF37] to-[#F3E5AB] text-black font-extrabold text-xs transition flex items-center gap-2 shadow-lg shadow-[#D4AF37]/20 hover:scale-[1.02] cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Yeni Kullanıcı Ekle</span>
+              </button>
+            </div>
+
+            {/* Security Notice */}
+            <div className="p-4 rounded-2xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 flex items-start gap-3">
+              <Key className="w-5 h-5 text-[#D4AF37] shrink-0 mt-0.5" />
+              <div className="text-xs text-zinc-300 space-y-1">
+                <p className="font-semibold text-white">
+                  Giriş Güvenliği ve Bulut Eşitlemesi
+                </p>
+                <p className="text-zinc-400 leading-relaxed">
+                  Ana yönetici kullanıcı adı <strong className="text-[#D4AF37]">SY</strong>, şifresi ise <strong className="text-[#D4AF37]">3939</strong>&apos;dur.
+                  Buraya ekleyeceğiniz veya şifresini değiştireceğiniz her kullanıcı, Firebase bulut veritabanı sayesinde <strong>tüm cihaz ve telefonlarda anında geçerli olur</strong>.
+                </p>
+              </div>
+            </div>
+
+            {/* Users Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {adminUsers.map((user) => {
+                const isSuperAdmin = user.username.toUpperCase() === 'SY';
+                const isSelf = currentUser?.id === user.id;
+
+                return (
+                  <div
+                    key={user.id}
+                    className="p-5 rounded-2xl bg-zinc-950 border border-zinc-800/90 hover:border-[#D4AF37]/40 transition space-y-4 flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#997929] via-[#D4AF37] to-[#F3E5AB] p-[1.5px] shrink-0">
+                            <div className="w-full h-full bg-[#0A0A0C] rounded-2xl flex items-center justify-center font-serif font-black text-sm text-[#D4AF37]">
+                              {user.name.slice(0, 2).toUpperCase()}
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-sm text-white flex items-center gap-1.5">
+                              <span>{user.name}</span>
+                              {isSelf && (
+                                <span className="px-1.5 py-0.2 rounded bg-zinc-800 text-[10px] text-zinc-400">
+                                  (Siz)
+                                </span>
+                              )}
+                            </h4>
+                            <p className="text-xs text-zinc-400 font-mono">@{user.username}</p>
+                          </div>
+                        </div>
+
+                        <span
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider shrink-0 ${
+                            user.role === 'Yönetici'
+                              ? 'bg-[#D4AF37]/20 border border-[#D4AF37]/50 text-[#D4AF37]'
+                              : 'bg-blue-500/15 border border-blue-500/40 text-blue-400'
+                          }`}
+                        >
+                          {user.role}
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-xs space-y-1.5 font-mono">
+                        <div className="flex items-center justify-between text-zinc-400">
+                          <span className="text-[11px] font-sans">Kullanıcı Adı:</span>
+                          <span className="text-white font-bold">{user.username}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-zinc-400">
+                          <span className="text-[11px] font-sans">Şifre:</span>
+                          <span className="text-zinc-300 font-bold tracking-widest">
+                            {user.password.length > 0 ? '••••••••' : '(Şifresiz)'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setChangePassUser(user);
+                          setNewPassInput('');
+                          setShowNewPass(false);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:text-white transition flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Key className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <span>Şifre Değiştir</span>
+                      </button>
+
+                      {isSuperAdmin ? (
+                        <span className="text-[10px] text-zinc-500 italic px-2 py-1 flex items-center gap-1">
+                          <Lock className="w-3 h-3" /> Ana Yönetici
+                        </span>
+                      ) : isSelf ? (
+                        <span className="text-[10px] text-zinc-500 italic px-2 py-1 flex items-center gap-1">
+                          <Lock className="w-3 h-3" /> Aktif Oturum
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`"${user.name}" (@${user.username}) kullanıcısını silmek istediğinize emin misiniz?`)) {
+                              deleteAdminUser(user.id);
+                            }
+                          }}
+                          className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-950/40 border border-transparent hover:border-red-900/50 transition cursor-pointer"
+                          title="Kullanıcıyı Sil"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* MODAL 1: APPOINTMENT DETAILS & STATUS ACTION MODAL */}
@@ -2826,6 +3210,186 @@ export default function AdminPage() {
                 Hafıza Notunu Kaydet
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD ADMIN USER */}
+      {isAddUserOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-md p-6 rounded-2xl bg-zinc-950 border border-[#D4AF37]/50 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-[#D4AF37]/10 text-[#D4AF37]">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base text-white">
+                    Yeni Kullanıcı / Personel Ekle
+                  </h3>
+                  <p className="text-[11px] text-zinc-400">Yönetim paneline erişim yetkisi tanımlayın</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddUserOpen(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateUserSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  Kullanıcı Adı (Girişte kullanılacak) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  placeholder="Örn: asistan1, sema"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  Giriş Şifresi *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Örn: 1234, Salon2026*"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  Ad Soyad / Ünvan
+                </label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Örn: Ayşe Yılmaz (Cilt Uzmanı)"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  Yetki Derecesi (Rol)
+                </label>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value as 'Yönetici' | 'Personel')}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                >
+                  <option value="Personel">Personel (Randevu & Seans Takibi)</option>
+                  <option value="Yönetici">Yönetici (Tam Yetki & Kasa Erişimi)</option>
+                </select>
+              </div>
+
+              {userFormError && (
+                <div className="p-3 rounded-xl bg-red-950/70 border border-red-800 text-red-200 text-xs">
+                  {userFormError}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddUserOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold hover:text-white cursor-pointer"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#997929] via-[#D4AF37] to-[#F3E5AB] text-black font-extrabold text-xs shadow-md cursor-pointer"
+                >
+                  Kullanıcıyı Kaydet
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CHANGE USER PASSWORD */}
+      {changePassUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-sm p-6 rounded-2xl bg-zinc-950 border border-[#D4AF37]/50 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-[#D4AF37]/10 text-[#D4AF37]">
+                  <Key className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-sm text-white">
+                    Şifre Değiştir
+                  </h3>
+                  <p className="text-[11px] text-zinc-400">
+                    {changePassUser.name} (@{changePassUser.username})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setChangePassUser(null)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdatePasswordSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  Yeni Şifre *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewPass ? 'text' : 'password'}
+                    required
+                    autoFocus
+                    value={newPassInput}
+                    onChange={(e) => setNewPassInput(e.target.value)}
+                    placeholder="Yeni şifreyi giriniz"
+                    className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPass(!showNewPass)}
+                    className="p-1 text-zinc-500 hover:text-zinc-300 absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showNewPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setChangePassUser(null)}
+                  className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold hover:text-white cursor-pointer"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md cursor-pointer"
+                >
+                  Şifreyi Güncelle
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

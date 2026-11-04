@@ -9,6 +9,7 @@ import {
   ClientProfile,
   ClientPackage,
   SalonExpense,
+  AdminUser,
 } from '@/types';
 import {
   INITIAL_APPOINTMENTS,
@@ -18,6 +19,7 @@ import {
   INITIAL_CLIENTS,
   INITIAL_PACKAGES,
   INITIAL_EXPENSES,
+  INITIAL_ADMIN_USERS,
   SALON_INFO,
 } from '@/data/initialData';
 import {
@@ -34,6 +36,7 @@ import {
   subscribeToPackages,
   subscribeToExpenses,
   subscribeToSettings,
+  subscribeToAdminUsers,
   cloudSaveAppointment,
   cloudUpdateAppointmentStatus,
   cloudDeleteAppointment,
@@ -47,6 +50,8 @@ import {
   cloudSaveExpense,
   cloudDeleteExpense,
   cloudSaveSettings,
+  cloudSaveAdminUser,
+  cloudDeleteAdminUser,
 } from '@/lib/cloudDb';
 
 interface SalonContextType {
@@ -138,6 +143,16 @@ interface SalonContextType {
   isCloudConnected: boolean;
   saveFirebaseConfig: (config: FirebaseConfig) => void;
   clearFirebaseConfig: () => void;
+
+  // Admin Authentication & User Management
+  adminUsers: AdminUser[];
+  currentUser: AdminUser | null;
+  isAuthLoading: boolean;
+  loginAdmin: (username: string, pass: string) => { success: boolean; message: string };
+  logoutAdmin: () => void;
+  addAdminUser: (userData: Omit<AdminUser, 'id' | 'createdAt'>) => { success: boolean; message: string };
+  deleteAdminUser: (id: string) => { success: boolean; message: string };
+  updateAdminPassword: (id: string, newPassword: string) => { success: boolean; message: string };
 }
 
 const SalonContext = createContext<SalonContextType | undefined>(undefined);
@@ -152,6 +167,9 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
   const [clients, setClients] = useState<ClientProfile[]>(INITIAL_CLIENTS);
   const [packages, setPackages] = useState<ClientPackage[]>(INITIAL_PACKAGES);
   const [expenses, setExpenses] = useState<SalonExpense[]>(INITIAL_EXPENSES);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>(INITIAL_ADMIN_USERS);
+  const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCloudConnected, setIsCloudConnected] = useState(false);
 
@@ -216,7 +234,41 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
 
       const savedExpenses = localStorage.getItem('sy_expenses');
       if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
+
+      const savedUsers = localStorage.getItem('sy_admin_users');
+      let currentUsersList = INITIAL_ADMIN_USERS;
+      if (savedUsers) {
+        try {
+          const parsed = JSON.parse(savedUsers);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            currentUsersList = parsed;
+            setAdminUsers(parsed);
+          }
+        } catch {
+          // Ignore
+        }
+      }
+
+      // Check existing authenticated session
+      const storedSession = localStorage.getItem('sy_auth_session');
+      if (storedSession) {
+        try {
+          const session = JSON.parse(storedSession);
+          const found = currentUsersList.find(
+            (u) =>
+              u.id === session.id ||
+              u.username.toLowerCase() === (session.username || '').toLowerCase()
+          );
+          if (found) {
+            setCurrentUser(found);
+          }
+        } catch {
+          // Ignore
+        }
+      }
+      setIsAuthLoading(false);
     } catch {
+      setIsAuthLoading(false);
       // Ignore parse errors
     }
   }, []);
@@ -252,11 +304,25 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
           clients,
           packages,
           expenses,
+          users: adminUsers,
           timeSlots,
           blockedDates,
           blockedSlots,
         });
       }
+
+      // Realtime Admin Users listener
+      const unsubUsers = subscribeToAdminUsers((cloudUsers) => {
+        if (cloudUsers && cloudUsers.length > 0) {
+          setAdminUsers(cloudUsers);
+          localStorage.setItem('sy_admin_users', JSON.stringify(cloudUsers));
+          setCurrentUser((prev) => {
+            if (!prev) return null;
+            const updated = cloudUsers.find((u) => u.id === prev.id);
+            return updated || prev;
+          });
+        }
+      });
 
       // Realtime Appointments listener
       const unsubApts = subscribeToAppointments((cloudApts) => {
@@ -323,6 +389,7 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
       });
 
       return () => {
+        unsubUsers();
         unsubApts();
         unsubSrv();
         unsubPrd();
@@ -355,6 +422,142 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
         window.location.reload();
       }, 700);
     }
+  };
+
+  // Admin Authentication & User Management
+  const loginAdmin = (username: string, pass: string): { success: boolean; message: string } => {
+    const trimmedUser = username.trim();
+    const trimmedPass = pass.trim();
+
+    const matched = adminUsers.find(
+      (u) =>
+        u.username.toLowerCase() === trimmedUser.toLowerCase() &&
+        u.password === trimmedPass
+    );
+
+    if (matched) {
+      setCurrentUser(matched);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'sy_auth_session',
+          JSON.stringify({ id: matched.id, username: matched.username, role: matched.role })
+        );
+      }
+      showNotification(`Hoş geldiniz, ${matched.name}!`);
+      return { success: true, message: 'Giriş başarılı.' };
+    }
+
+    return {
+      success: false,
+      message: 'Kullanıcı adı veya şifre hatalı. Lütfen kontrol edip tekrar deneyiniz.',
+    };
+  };
+
+  const logoutAdmin = () => {
+    setCurrentUser(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('sy_auth_session');
+    }
+    showNotification('Yönetim panelinden güvenli çıkış yapıldı.');
+  };
+
+  const addAdminUser = (
+    userData: Omit<AdminUser, 'id' | 'createdAt'>
+  ): { success: boolean; message: string } => {
+    const trimmedUsername = userData.username.trim();
+    if (!trimmedUsername) {
+      return { success: false, message: 'Kullanıcı adı boş bırakılamaz.' };
+    }
+    if (!userData.password.trim()) {
+      return { success: false, message: 'Şifre boş bırakılamaz.' };
+    }
+
+    const exists = adminUsers.some(
+      (u) => u.username.toLowerCase() === trimmedUsername.toLowerCase()
+    );
+    if (exists) {
+      return {
+        success: false,
+        message: `"${trimmedUsername}" kullanıcı adı zaten kayıtlı. Başka bir kullanıcı adı seçiniz.`,
+      };
+    }
+
+    const newUser: AdminUser = {
+      id: `usr-${Date.now()}`,
+      username: trimmedUsername,
+      password: userData.password.trim(),
+      name: userData.name.trim() || trimmedUsername,
+      role: userData.role || 'Personel',
+      createdAt: new Date().toISOString(),
+    };
+
+    const updated = [...adminUsers, newUser];
+    setAdminUsers(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sy_admin_users', JSON.stringify(updated));
+    }
+    cloudSaveAdminUser(newUser).catch(console.error);
+    showNotification(`Yeni kullanıcı "${newUser.name}" eklendi.`);
+    return { success: true, message: 'Kullanıcı başarıyla eklendi.' };
+  };
+
+  const deleteAdminUser = (id: string): { success: boolean; message: string } => {
+    const target = adminUsers.find((u) => u.id === id);
+    if (!target) {
+      return { success: false, message: 'Kullanıcı bulunamadı.' };
+    }
+
+    if (target.username.toUpperCase() === 'SY') {
+      return {
+        success: false,
+        message: 'Ana yönetici hesabı ("SY") silinemez.',
+      };
+    }
+
+    if (currentUser && currentUser.id === id) {
+      return {
+        success: false,
+        message: 'Şu anda oturumu açık olan kendi hesabınızı silemezsiniz.',
+      };
+    }
+
+    const updated = adminUsers.filter((u) => u.id !== id);
+    setAdminUsers(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sy_admin_users', JSON.stringify(updated));
+    }
+    cloudDeleteAdminUser(id).catch(console.error);
+    showNotification(`"${target.name}" kullanıcısı silindi.`);
+    return { success: true, message: 'Kullanıcı silindi.' };
+  };
+
+  const updateAdminPassword = (
+    id: string,
+    newPassword: string
+  ): { success: boolean; message: string } => {
+    if (!newPassword.trim()) {
+      return { success: false, message: 'Şifre boş olamaz.' };
+    }
+
+    const target = adminUsers.find((u) => u.id === id);
+    if (!target) {
+      return { success: false, message: 'Kullanıcı bulunamadı.' };
+    }
+
+    const updatedUser = { ...target, password: newPassword.trim() };
+    const updated = adminUsers.map((u) => (u.id === id ? updatedUser : u));
+    setAdminUsers(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sy_admin_users', JSON.stringify(updated));
+    }
+    cloudSaveAdminUser(updatedUser).catch(console.error);
+
+    if (currentUser?.id === id) {
+      setCurrentUser(updatedUser);
+    }
+
+    showNotification(`"${target.name}" kullanıcısının şifresi güncellendi.`);
+    return { success: true, message: 'Şifre güncellendi.' };
   };
 
   // Sync helpers
@@ -894,6 +1097,14 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
         isCloudConnected,
         saveFirebaseConfig,
         clearFirebaseConfig,
+        adminUsers,
+        currentUser,
+        isAuthLoading,
+        loginAdmin,
+        logoutAdmin,
+        addAdminUser,
+        deleteAdminUser,
+        updateAdminPassword,
       }}
     >
       {children}

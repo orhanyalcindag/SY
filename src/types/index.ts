@@ -103,3 +103,14 @@ export interface SalonExpense {
   date: string;
   note?: string;
 }
+
+// 4. Admin & Staff Authentication
+export interface AdminUser {
+  id: string;
+  username: string;
+  password: string;
+  name: string;
+  role: 'Yönetici' | 'Personel';
+  createdAt: string;
+}
+

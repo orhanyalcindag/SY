@@ -5,6 +5,7 @@ import {
   ClientProfile,
   ClientPackage,
   SalonExpense,
+  AdminUser,
 } from '@/types';
 
 export const SALON_INFO = {
@@ -551,4 +552,16 @@ export const INITIAL_EXPENSES: SalonExpense[] = [
     note: 'Kırklareli & Lüleburgaz hedefli dijital kampanya.',
   },
 ];
+
+export const INITIAL_ADMIN_USERS: AdminUser[] = [
+  {
+    id: 'usr-admin-sy',
+    username: 'SY',
+    password: '3939',
+    name: 'Simay Yorulmaz',
+    role: 'Yönetici',
+    createdAt: '2026-11-04T00:00:00.000Z',
+  },
+];
+
 

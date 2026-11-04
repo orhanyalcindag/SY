@@ -15,6 +15,7 @@ import {
   ClientProfile,
   ClientPackage,
   SalonExpense,
+  AdminUser,
 } from '@/types';
 import {
   INITIAL_APPOINTMENTS,
@@ -24,6 +25,7 @@ import {
   INITIAL_CLIENTS,
   INITIAL_PACKAGES,
   INITIAL_EXPENSES,
+  INITIAL_ADMIN_USERS,
 } from '@/data/initialData';
 
 // Firestore collection names
@@ -34,6 +36,7 @@ const COL_CLIENTS = 'sy_clients';
 const COL_PACKAGES = 'sy_packages';
 const COL_EXPENSES = 'sy_expenses';
 const COL_SETTINGS = 'sy_settings';
+const COL_USERS = 'sy_users';
 const DOC_SETTINGS = 'general';
 
 export interface SalonSettingsData {
@@ -49,6 +52,7 @@ export interface SeedDataPayload {
   clients?: ClientProfile[];
   packages?: ClientPackage[];
   expenses?: SalonExpense[];
+  users?: AdminUser[];
   timeSlots?: string[];
   blockedDates?: string[];
   blockedSlots?: string[];
@@ -123,6 +127,17 @@ export async function seedCloudDatabaseIfEmpty(customData?: SeedDataPayload) {
         : INITIAL_EXPENSES;
       for (const ex of seedExpenses) {
         await setDoc(doc(db, COL_EXPENSES, ex.id), ex);
+      }
+    }
+
+    const userSnap = await getDocs(collection(db, COL_USERS));
+    if (userSnap.empty) {
+      console.log('Seeding initial admin users to Firebase...');
+      const seedUsers = (customData?.users && customData.users.length > 0)
+        ? customData.users
+        : INITIAL_ADMIN_USERS;
+      for (const u of seedUsers) {
+        await setDoc(doc(db, COL_USERS, u.id), u);
       }
     }
 
@@ -264,6 +279,23 @@ export function subscribeToSettings(callback: (settings: SalonSettingsData) => v
   );
 }
 
+export function subscribeToAdminUsers(callback: (users: AdminUser[]) => void) {
+  const db = getFirebaseDb();
+  if (!db) return () => {};
+
+  return onSnapshot(
+    collection(db, COL_USERS),
+    (snapshot) => {
+      const list: AdminUser[] = [];
+      snapshot.forEach((d) => list.push(d.data() as AdminUser));
+      callback(list);
+    },
+    (err) => {
+      console.error('subscribeToAdminUsers error:', err);
+    }
+  );
+}
+
 // 3. Cloud Mutations
 export async function cloudSaveAppointment(apt: SalonAppointment) {
   const db = getFirebaseDb();
@@ -394,5 +426,25 @@ export async function cloudSaveSettings(settings: Partial<SalonSettingsData>) {
     await setDoc(settingsRef, settings, { merge: true });
   } catch (err) {
     console.error('cloudSaveSettings error:', err);
+  }
+}
+
+export async function cloudSaveAdminUser(user: AdminUser) {
+  const db = getFirebaseDb();
+  if (!db) return;
+  try {
+    await setDoc(doc(db, COL_USERS, user.id), user);
+  } catch (err) {
+    console.error('cloudSaveAdminUser error:', err);
+  }
+}
+
+export async function cloudDeleteAdminUser(id: string) {
+  const db = getFirebaseDb();
+  if (!db) return;
+  try {
+    await deleteDoc(doc(db, COL_USERS, id));
+  } catch (err) {
+    console.error('cloudDeleteAdminUser error:', err);
   }
 }
