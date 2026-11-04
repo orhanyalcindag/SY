@@ -91,7 +91,7 @@ export default function HomePage() {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900/90 border border-[#D4AF37]/40 text-[#D4AF37] text-xs font-semibold shadow-lg shadow-[#D4AF37]/5">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Kırklareli Demirköy’ün Seçkin Güzellik & Estetik Kulübü</span>
+                <span>Kırklareli Demirköy’ün Seçkin Güzellik & Estetik Merkezi</span>
               </div>
 
               {/* Title */}

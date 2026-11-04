@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: 'Simay Yorulmaz Health & Beauty',
-    description: 'Demirköy’ün Ayrıcalıklı Güzellik & Estetik Kulübü',
+    description: 'Demirköy’ün Ayrıcalıklı Güzellik & Estetik Merkezi',
     locale: 'tr_TR',
     type: 'website',
   },

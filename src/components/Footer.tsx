@@ -39,7 +39,7 @@ export default function Footer() {
             </div>
 
             <p className="text-zinc-400 text-xs leading-relaxed max-w-md">
-              Demirköy / Kırklareli’nin öncü güzellik kulübü. Yüksek hijyen standartları, son jenerasyon cihaz parkuru ve uzman protokollerimizle doğal güzelliğinizi ön plana çıkarıyoruz.
+              Demirköy / Kırklareli’nin öncü güzellik merkezi. Yüksek hijyen standartları, son jenerasyon cihaz parkuru ve uzman protokollerimizle doğal güzelliğinizi ön plana çıkarıyoruz.
             </p>
 
             <div className="pt-2 flex items-center gap-3">
