@@ -864,113 +864,155 @@ export default function AdminPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 border-b border-zinc-800 pb-3 overflow-x-auto scrollbar-none">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-2xl bg-zinc-950/80 border border-zinc-800/80 shadow-inner">
           <button
             onClick={() => setActiveTab('weekly')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'weekly'
-                ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                ? 'bg-[#D4AF37] text-black shadow-md shadow-[#D4AF37]/25'
+                : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800/60'
             }`}
           >
-            <Calendar className="w-4 h-4" />
-            <span>Haftalık Takvim Dashboard</span>
+            <Calendar className="w-3.5 h-3.5 shrink-0" />
+            <span>Takvim</span>
           </button>
 
           <button
             onClick={() => setActiveTab('appointments')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'appointments'
-                ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                ? 'bg-[#D4AF37] text-black shadow-md shadow-[#D4AF37]/25'
+                : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800/60'
             }`}
           >
-            <Clock className="w-4 h-4" />
-            <span>Randevular & Hatırlatıcı ({appointments.length})</span>
+            <Clock className="w-3.5 h-3.5 shrink-0" />
+            <span>Randevular</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                activeTab === 'appointments' ? 'bg-black/30 text-black' : 'bg-zinc-800 text-zinc-300'
+              }`}
+            >
+              {appointments.length}
+            </span>
           </button>
 
           <button
             onClick={() => setActiveTab('clients')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'clients'
-                ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                ? 'bg-[#D4AF37] text-black shadow-md shadow-[#D4AF37]/25'
+                : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800/60'
             }`}
           >
-            <User className="w-4 h-4" />
-            <span>Danışan Dosyası & CRM ({clients.length})</span>
+            <User className="w-3.5 h-3.5 shrink-0" />
+            <span>Danışanlar</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                activeTab === 'clients' ? 'bg-black/30 text-black' : 'bg-zinc-800 text-zinc-300'
+              }`}
+            >
+              {clients.length}
+            </span>
           </button>
 
           <button
             onClick={() => setActiveTab('packages')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'packages'
-                ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                ? 'bg-[#D4AF37] text-black shadow-md shadow-[#D4AF37]/25'
+                : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800/60'
             }`}
           >
-            <Layers className="w-4 h-4" />
-            <span>Paket & Seans Takip ({packages.length})</span>
+            <Layers className="w-3.5 h-3.5 shrink-0" />
+            <span>Paketler</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                activeTab === 'packages' ? 'bg-black/30 text-black' : 'bg-zinc-800 text-zinc-300'
+              }`}
+            >
+              {packages.length}
+            </span>
           </button>
 
           <button
             onClick={() => setActiveTab('finance')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'finance'
-                ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                ? 'bg-[#D4AF37] text-black shadow-md shadow-[#D4AF37]/25'
+                : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800/60'
             }`}
           >
-            <DollarSign className="w-4 h-4" />
-            <span>Kasa, Masraflar & Net Kâr</span>
+            <DollarSign className="w-3.5 h-3.5 shrink-0" />
+            <span>Kasa & Gider</span>
           </button>
 
           <button
             onClick={() => setActiveTab('slots')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'slots'
-                ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                ? 'bg-[#D4AF37] text-black shadow-md shadow-[#D4AF37]/25'
+                : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800/60'
             }`}
           >
-            <Lock className="w-4 h-4" />
-            <span>Saat & Gün Kapatma</span>
+            <Lock className="w-3.5 h-3.5 shrink-0" />
+            <span>Saatler & İzin</span>
           </button>
 
           <button
             onClick={() => setActiveTab('services')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'services'
-                ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                ? 'bg-[#D4AF37] text-black shadow-md shadow-[#D4AF37]/25'
+                : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800/60'
             }`}
           >
-            <Sparkles className="w-4 h-4" />
-            <span>İşlemler & Fiyatlar ({services.length})</span>
+            <Sparkles className="w-3.5 h-3.5 shrink-0" />
+            <span>Hizmetler</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                activeTab === 'services' ? 'bg-black/30 text-black' : 'bg-zinc-800 text-zinc-300'
+              }`}
+            >
+              {services.length}
+            </span>
           </button>
 
           <button
             onClick={() => setActiveTab('products')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'products'
-                ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                ? 'bg-[#D4AF37] text-black shadow-md shadow-[#D4AF37]/25'
+                : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800/60'
             }`}
           >
-            <ShoppingBag className="w-4 h-4" />
-            <span>WhatsApp Mağaza ({products.length})</span>
+            <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+            <span>Ürünler</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                activeTab === 'products' ? 'bg-black/30 text-black' : 'bg-zinc-800 text-zinc-300'
+              }`}
+            >
+              {products.length}
+            </span>
           </button>
 
           <button
             onClick={() => setActiveTab('users')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'users'
-                ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                ? 'bg-[#D4AF37] text-black shadow-md shadow-[#D4AF37]/25'
+                : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800/60'
             }`}
           >
-            <Users className="w-4 h-4" />
-            <span>Kullanıcılar ({adminUsers.length})</span>
+            <Users className="w-3.5 h-3.5 shrink-0" />
+            <span>Kullanıcılar</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                activeTab === 'users' ? 'bg-black/30 text-black' : 'bg-zinc-800 text-zinc-300'
+              }`}
+            >
+              {adminUsers.length}
+            </span>
           </button>
         </div>
 
