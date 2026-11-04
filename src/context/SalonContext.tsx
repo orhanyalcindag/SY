@@ -81,10 +81,30 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') return;
     try {
       const savedServices = localStorage.getItem('sy_services');
-      if (savedServices) setServices(JSON.parse(savedServices));
+      if (savedServices) {
+        const parsed = JSON.parse(savedServices) as SalonService[];
+        const migrated = parsed.map((s) => {
+          if (!s.image || s.image.includes('unsplash.com')) {
+            const initial = INITIAL_SERVICES.find((init) => init.id === s.id);
+            return { ...s, image: initial?.image || '/images/hydrafacial.jpg' };
+          }
+          return s;
+        });
+        setServices(migrated);
+      }
 
       const savedProducts = localStorage.getItem('sy_products');
-      if (savedProducts) setProducts(JSON.parse(savedProducts));
+      if (savedProducts) {
+        const parsed = JSON.parse(savedProducts) as SalonProduct[];
+        const migrated = parsed.map((p) => {
+          if (!p.image || p.image.includes('unsplash.com')) {
+            const initial = INITIAL_PRODUCTS.find((init) => init.id === p.id);
+            return { ...p, image: initial?.image || '/images/serum-c.jpg' };
+          }
+          return p;
+        });
+        setProducts(migrated);
+      }
 
       const savedAppointments = localStorage.getItem('sy_appointments');
       if (savedAppointments) setAppointments(JSON.parse(savedAppointments));

@@ -83,7 +83,7 @@ export default function AdminPage() {
   const [prdName, setPrdName] = useState('');
   const [prdCategory, setPrdCategory] = useState<ProductCategory>('Cilt Bakımı & Serum');
   const [prdPrice, setPrdPrice] = useState(750);
-  const [prdImage, setPrdImage] = useState('https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500&auto=format&fit=crop&q=80');
+  const [prdImage, setPrdImage] = useState('/images/serum-c.jpg');
   const [prdDescription, setPrdDescription] = useState('');
   const [prdInStock, setPrdInStock] = useState(true);
 
@@ -146,7 +146,7 @@ export default function AdminPage() {
       name: prdName,
       category: prdCategory,
       price: Number(prdPrice),
-      image: prdImage || 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500&auto=format&fit=crop&q=80',
+      image: prdImage || '/images/serum-c.jpg',
       description: prdDescription || `${prdName} bakım ürünü.`,
       inStock: prdInStock,
       featured: true,
@@ -849,7 +849,7 @@ export default function AdminPage() {
                       type="text"
                       value={prdImage}
                       onChange={(e) => setPrdImage(e.target.value)}
-                      placeholder="https://images.unsplash.com/..."
+                      placeholder="/images/serum-c.jpg veya URL"
                       className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
                     />
                   </div>

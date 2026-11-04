@@ -157,65 +157,52 @@ export default function HomePage() {
             </div>
 
             {/* Right Visual Collage */}
-            <div className="lg:col-span-5 relative">
+            <div className="lg:col-span-5 space-y-4">
               <div className="relative mx-auto max-w-md lg:max-w-none">
-                {/* Main Large Visual Card */}
-                <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border border-[#D4AF37]/30 shadow-2xl shadow-[#D4AF37]/10 group">
+                {/* Main Large Visual Card (Clean, Unobstructed) */}
+                <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border border-[#D4AF37]/40 shadow-2xl shadow-[#D4AF37]/10 group bg-zinc-950">
                   <Image
-                    src="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=900&auto=format&fit=crop&q=80"
-                    alt="Simay Yorulmaz Cilt Bakımı"
+                    src="/images/hero.jpg"
+                    alt="Simay Yorulmaz Cilt Bakımı ve Güzellik Protokolü"
                     fill
                     priority
                     className="object-cover group-hover:scale-105 transition duration-700"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+                </div>
+              </div>
 
-                  {/* Overlaid Badge Inside Photo */}
-                  <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-zinc-950/80 backdrop-blur-md border border-white/10">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-wider block">
-                          Öne Çıkan Protokol
-                        </span>
-                        <h4 className="font-serif font-bold text-sm text-white mt-0.5">
-                          Hydrafacial & Somon DNA
-                        </h4>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-lg bg-[#D4AF37] text-black font-extrabold text-xs">
-                        1.400 ₺
-                      </span>
-                    </div>
+              {/* Informative Cards Cleanly Positioned Below the Image (No Overlap) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md lg:max-w-none mx-auto">
+                {/* Protocol Card */}
+                <div className="p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-800 hover:border-[#D4AF37]/40 transition flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-wider block">
+                      Öne Çıkan Protokol
+                    </span>
+                    <h4 className="font-serif font-bold text-xs text-white mt-0.5">
+                      Hydrafacial & Somon DNA
+                    </h4>
                   </div>
+                  <span className="px-2.5 py-1 rounded-lg bg-[#D4AF37] text-black font-extrabold text-[11px]">
+                    1.400 ₺
+                  </span>
                 </div>
 
-                {/* Floating Side Card: Nail Art / Lazer */}
-                <div className="hidden sm:flex absolute -bottom-6 -left-8 p-3 rounded-2xl bg-zinc-900/95 border border-[#D4AF37]/40 shadow-2xl backdrop-blur-md items-center gap-3">
-                  <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-zinc-700">
-                    <Image
-                      src="https://images.unsplash.com/photo-1632345031435-8727f6897d53?w=300&auto=format&fit=crop&q=80"
-                      alt="Nail Art"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
+                {/* Nail Art Card */}
+                <div className="p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-800 hover:border-[#D4AF37]/40 transition flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-[#D4AF37] uppercase block">
+                    <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-wider block">
                       Jel Tırnak & Nail Art
                     </span>
-                    <p className="text-xs font-semibold text-white">Özel El Çizimi Tasarımlar</p>
-                    <span className="text-[10px] text-emerald-400 font-medium">Randevular Açık</span>
+                    <h4 className="font-serif font-bold text-xs text-white mt-0.5">
+                      Özel El Çizimi Tasarımlar
+                    </h4>
                   </div>
-                </div>
-
-                {/* Floating Top Badge: Buz Lazer */}
-                <div className="hidden sm:flex absolute -top-4 -right-4 p-3 rounded-2xl bg-zinc-900/95 border border-white/10 shadow-2xl backdrop-blur-md items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
-                    <Zap className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-zinc-400 block font-semibold">Hibrit Buz Başlık</span>
-                    <span className="text-xs font-bold text-white">Acısız Lazer Seansı</span>
-                  </div>
+                  <span className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-800/60">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Açık</span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -488,10 +475,10 @@ export default function HomePage() {
 
           {/* Visual Cards */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-zinc-800 shadow-xl group">
+            <div className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-zinc-800 shadow-xl group bg-zinc-950">
               <Image
-                src="https://images.unsplash.com/photo-1560750588-73207b1ef5b8?w=800&auto=format&fit=crop&q=80"
-                alt="Simay Yorulmaz Cilt Bakımı"
+                src="/images/salon-interior.jpg"
+                alt="Simay Yorulmaz Butik Salon Atmosferi"
                 fill
                 className="object-cover group-hover:scale-105 transition duration-500"
               />
@@ -501,9 +488,9 @@ export default function HomePage() {
             </div>
 
             <div className="space-y-4">
-              <div className="relative aspect-square rounded-3xl overflow-hidden border border-zinc-800 shadow-xl group">
+              <div className="relative aspect-square rounded-3xl overflow-hidden border border-zinc-800 shadow-xl group bg-zinc-950">
                 <Image
-                  src="https://images.unsplash.com/photo-1604654894610-df63bc536371?w=800&auto=format&fit=crop&q=80"
+                  src="/images/manicure.jpg"
                   alt="Nail Art Protez Tırnak"
                   fill
                   className="object-cover group-hover:scale-105 transition duration-500"
