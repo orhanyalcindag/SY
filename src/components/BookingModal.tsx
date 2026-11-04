@@ -15,19 +15,9 @@ import {
   CheckCircle2,
   Send,
   ShieldCheck,
+  Ban,
+  AlertCircle,
 } from 'lucide-react';
-
-const TIME_SLOTS = [
-  '09:30',
-  '10:30',
-  '11:30',
-  '13:00',
-  '14:00',
-  '15:00',
-  '16:30',
-  '17:30',
-  '18:30',
-];
 
 export default function BookingModal() {
   const {
@@ -37,8 +27,13 @@ export default function BookingModal() {
     selectedServiceForBooking,
     setSelectedServiceForBooking,
     addAppointment,
+    appointments,
+    timeSlots,
+    isSlotBooked,
+    getOccupiedSlotsForDate,
   } = useSalon();
 
+  const [todayStr, setTodayStr] = useState('2026-11-04');
   const [selectedServiceId, setSelectedServiceId] = useState<string>('');
   const [date, setDate] = useState('2026-11-04');
   const [time, setTime] = useState('11:30');
@@ -48,6 +43,17 @@ export default function BookingModal() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Client-side date initialization to prevent prerender hydration mismatch
+  useEffect(() => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const formatted = `${yyyy}-${mm}-${dd}`;
+    setTodayStr(formatted);
+    setDate((prev) => (prev < formatted ? formatted : prev));
+  }, []);
+
   useEffect(() => {
     if (selectedServiceForBooking) {
       setSelectedServiceId(selectedServiceForBooking.id);
@@ -56,6 +62,23 @@ export default function BookingModal() {
     }
   }, [selectedServiceForBooking, services, selectedServiceId]);
 
+  // Check occupied slots for the selected date
+  const occupiedSlots = getOccupiedSlotsForDate(date);
+
+  // Auto-select first available time slot if currently selected time is occupied
+  useEffect(() => {
+    if (timeSlots.length > 0) {
+      if (occupiedSlots.includes(time)) {
+        const firstAvailable = timeSlots.find((s) => !occupiedSlots.includes(s));
+        if (firstAvailable) {
+          setTime(firstAvailable);
+        }
+      } else if (!timeSlots.includes(time)) {
+        setTime(timeSlots[0]);
+      }
+    }
+  }, [date, occupiedSlots, time, timeSlots]);
+
   if (!isBookingOpen) return null;
 
   const currentService =
@@ -63,6 +86,19 @@ export default function BookingModal() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. Past date check
+    if (date < todayStr) {
+      setErrorMessage('Geçmiş bir tarihe randevu alınamaz. Lütfen bugünü veya ileri bir tarihi seçiniz.');
+      return;
+    }
+
+    // 2. Full / Occupied slot check
+    if (isSlotBooked(date, time)) {
+      setErrorMessage(`Seçilen ${date} ${time} saati doludur. Lütfen müsait olan başka bir saat seçiniz.`);
+      return;
+    }
+
     if (!clientName.trim()) {
       setErrorMessage('Lütfen adınızı ve soyadınızı yazınız.');
       return;
@@ -71,6 +107,7 @@ export default function BookingModal() {
       setErrorMessage('Lütfen geçerli bir telefon numarası giriniz.');
       return;
     }
+
     setErrorMessage('');
 
     if (currentService) {
@@ -114,6 +151,7 @@ export default function BookingModal() {
     setIsSuccess(false);
     setClientName('');
     setNotes('');
+    setErrorMessage('');
   };
 
   return (
@@ -143,7 +181,7 @@ export default function BookingModal() {
           </div>
           <button
             onClick={handleClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -180,24 +218,25 @@ export default function BookingModal() {
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 onClick={handleNotifyWhatsApp}
-                className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 transition"
+                className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 <Send className="w-4 h-4" />
                 <span>WhatsApp’tan Teyit Et</span>
               </button>
               <button
                 onClick={handleClose}
-                className="py-3 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 transition"
+                className="py-3 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 transition cursor-pointer"
               >
                 Kapat
               </button>
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[82vh] overflow-y-auto">
             {errorMessage && (
-              <div className="p-3 rounded-lg bg-red-950/60 border border-red-800 text-red-200 text-xs">
-                {errorMessage}
+              <div className="p-3 rounded-lg bg-red-950/80 border border-red-700 text-red-200 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{errorMessage}</span>
               </div>
             )}
 
@@ -220,38 +259,86 @@ export default function BookingModal() {
               </select>
             </div>
 
-            {/* Date and Time Picker */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] text-zinc-400 mb-1 flex items-center gap-1">
+            {/* Date Selection (Blocked for past dates) */}
+            <div>
+              <label className="block text-[11px] text-zinc-400 mb-1 flex items-center justify-between">
+                <span className="flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5 text-[#D4AF37]" />
                   <span>Randevu Tarihi</span>
-                </label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
-                />
-              </div>
+                </span>
+                <span className="text-[10px] text-zinc-500">Bugün veya ileri tarih seçiniz</span>
+              </label>
+              <input
+                type="date"
+                min={todayStr}
+                required
+                value={date}
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  setErrorMessage('');
+                }}
+                className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+              />
+            </div>
 
-              <div>
-                <label className="block text-[11px] text-zinc-400 mb-1 flex items-center gap-1">
+            {/* Time Slot Selection (Occupied slots cannot be chosen) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[11px] text-zinc-400 flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5 text-[#D4AF37]" />
                   <span>Saat Seçimi</span>
                 </label>
-                <select
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
-                >
-                  {TIME_SLOTS.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center gap-3 text-[10px]">
+                  <span className="flex items-center gap-1 text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span>Müsait</span>
+                  </span>
+                  <span className="flex items-center gap-1 text-zinc-500">
+                    <span className="w-2 h-2 rounded-full bg-red-500/60" />
+                    <span>Dolu</span>
+                  </span>
+                </div>
               </div>
+
+              {/* Interactive Time Slot Pills */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {timeSlots.map((slot) => {
+                  const isBooked = occupiedSlots.includes(slot);
+                  const isSelected = time === slot && !isBooked;
+
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      disabled={isBooked}
+                      onClick={() => {
+                        setTime(slot);
+                        setErrorMessage('');
+                      }}
+                      className={`py-2 px-2.5 rounded-xl text-xs font-semibold transition flex flex-col items-center justify-center gap-0.5 border ${
+                        isBooked
+                          ? 'bg-zinc-950/80 border-zinc-900 text-zinc-600 cursor-not-allowed opacity-50'
+                          : isSelected
+                          ? 'bg-[#D4AF37] text-black border-[#D4AF37] font-extrabold shadow-md shadow-[#D4AF37]/20'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 cursor-pointer'
+                      }`}
+                      title={isBooked ? 'Bu saat doludur' : 'Bu saat müsait'}
+                    >
+                      <span className={isBooked ? 'line-through' : ''}>{slot}</span>
+                      <span className="text-[9px] font-normal">
+                        {isBooked ? 'DOLU' : 'Müsait'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {occupiedSlots.length === timeSlots.length && (
+                <p className="text-[11px] text-amber-400 mt-2 flex items-center gap-1">
+                  <Ban className="w-3 h-3" />
+                  <span>Bu tarihteki tüm saatler doludur. Lütfen başka bir gün seçiniz.</span>
+                </p>
+              )}
             </div>
 
             {/* Client Info */}
@@ -328,7 +415,8 @@ export default function BookingModal() {
             <div className="pt-2">
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA8222] hover:from-[#E5BF47] hover:to-[#B38F2C] text-black font-extrabold text-xs shadow-xl shadow-[#D4AF37]/20 flex items-center justify-center gap-2 transition transform active:scale-95"
+                disabled={occupiedSlots.length === timeSlots.length}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA8222] hover:from-[#E5BF47] hover:to-[#B38F2C] text-black font-extrabold text-xs shadow-xl shadow-[#D4AF37]/20 flex items-center justify-center gap-2 transition transform active:scale-95 cursor-pointer disabled:opacity-50"
               >
                 <Calendar className="w-4 h-4" />
                 <span>Randevu Talebini Onayla</span>

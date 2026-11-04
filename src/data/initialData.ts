@@ -17,6 +17,18 @@ export const SALON_INFO = {
     'Kırklareli Demirköy’de en yeni teknoloji cihazlar, steril klinik standartları ve kişiye özel güzellik protokolleriyle hizmet veren ayrıcalıklı güzellik ve estetik merkezi.',
 };
 
+export const INITIAL_TIME_SLOTS: string[] = [
+  '09:30',
+  '10:30',
+  '11:30',
+  '13:00',
+  '14:00',
+  '15:00',
+  '16:30',
+  '17:30',
+  '18:30',
+];
+
 export const INITIAL_SERVICES: SalonService[] = [
   {
     id: 'srv-1',

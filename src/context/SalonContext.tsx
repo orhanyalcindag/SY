@@ -11,6 +11,7 @@ import {
   INITIAL_APPOINTMENTS,
   INITIAL_PRODUCTS,
   INITIAL_SERVICES,
+  INITIAL_TIME_SLOTS,
   SALON_INFO,
 } from '@/data/initialData';
 
@@ -32,6 +33,14 @@ interface SalonContextType {
   addAppointment: (appointment: Omit<SalonAppointment, 'id' | 'createdAt'>) => void;
   updateAppointmentStatus: (id: string, status: SalonAppointment['status']) => void;
   deleteAppointment: (id: string) => void;
+
+  // Time Slots Management
+  timeSlots: string[];
+  addTimeSlot: (slot: string) => void;
+  removeTimeSlot: (slot: string) => void;
+  resetTimeSlots: () => void;
+  isSlotBooked: (date: string, time: string, excludeAptId?: string) => boolean;
+  getOccupiedSlotsForDate: (date: string) => string[];
 
   // Cart & Shopping
   cart: CartItem[];
@@ -64,6 +73,7 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
   const [services, setServices] = useState<SalonService[]>(INITIAL_SERVICES);
   const [products, setProducts] = useState<SalonProduct[]>(INITIAL_PRODUCTS);
   const [appointments, setAppointments] = useState<SalonAppointment[]>(INITIAL_APPOINTMENTS);
+  const [timeSlots, setTimeSlots] = useState<string[]>(INITIAL_TIME_SLOTS);
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -108,6 +118,9 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
 
       const savedAppointments = localStorage.getItem('sy_appointments');
       if (savedAppointments) setAppointments(JSON.parse(savedAppointments));
+
+      const savedSlots = localStorage.getItem('sy_time_slots');
+      if (savedSlots) setTimeSlots(JSON.parse(savedSlots));
     } catch {
       // Ignore parse errors
     }
@@ -207,6 +220,54 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     showNotification('Randevu kaydı silindi.');
   };
 
+  // Time Slots Management
+  const saveTimeSlots = (slots: string[]) => {
+    const sorted = [...slots].sort((a, b) => a.localeCompare(b));
+    setTimeSlots(sorted);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sy_time_slots', JSON.stringify(sorted));
+    }
+  };
+
+  const addTimeSlot = (slot: string) => {
+    const trimmed = slot.trim();
+    if (!trimmed) return;
+    if (timeSlots.includes(trimmed)) {
+      showNotification(`"${trimmed}" saati zaten listede mevcut.`);
+      return;
+    }
+    const updated = [...timeSlots, trimmed];
+    saveTimeSlots(updated);
+    showNotification(`Yeni randevu saati eklendi: ${trimmed}`);
+  };
+
+  const removeTimeSlot = (slot: string) => {
+    if (timeSlots.length <= 1) {
+      showNotification('En az bir randevu saati bulunmalıdır.');
+      return;
+    }
+    const updated = timeSlots.filter((s) => s !== slot);
+    saveTimeSlots(updated);
+    showNotification(`Randevu saati kaldırıldı: ${slot}`);
+  };
+
+  const resetTimeSlots = () => {
+    saveTimeSlots(INITIAL_TIME_SLOTS);
+    showNotification('Randevu saatleri varsayılan ayarlara döndürüldü.');
+  };
+
+  const isSlotBooked = (date: string, time: string, excludeAptId?: string) => {
+    return appointments.some(
+      (a) => a.date === date && a.time === time && a.status !== 'IPTAL' && a.id !== excludeAptId
+    );
+  };
+
+  const getOccupiedSlotsForDate = (date: string) => {
+    return appointments
+      .filter((a) => a.date === date && a.status !== 'IPTAL')
+      .map((a) => a.time);
+  };
+
   // Cart Management
   const addToCart = (product: SalonProduct) => {
     setCart((prev) => {
@@ -301,6 +362,12 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
         addAppointment,
         updateAppointmentStatus,
         deleteAppointment,
+        timeSlots,
+        addTimeSlot,
+        removeTimeSlot,
+        resetTimeSlots,
+        isSlotBooked,
+        getOccupiedSlotsForDate,
         cart,
         addToCart,
         removeFromCart,
