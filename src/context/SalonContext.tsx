@@ -9,7 +9,6 @@ import {
   ClientProfile,
   ClientPackage,
   SalonExpense,
-  BeforeAfterItem,
 } from '@/types';
 import {
   INITIAL_APPOINTMENTS,
@@ -19,7 +18,6 @@ import {
   INITIAL_CLIENTS,
   INITIAL_PACKAGES,
   INITIAL_EXPENSES,
-  INITIAL_BEFORE_AFTER,
   SALON_INFO,
 } from '@/data/initialData';
 
@@ -76,9 +74,6 @@ interface SalonContextType {
   addExpense: (expense: Omit<SalonExpense, 'id'>) => void;
   deleteExpense: (id: string) => void;
 
-  // Before & After Gallery
-  beforeAfterItems: BeforeAfterItem[];
-
   // Cart & Shopping
   cart: CartItem[];
   addToCart: (product: SalonProduct) => void;
@@ -124,7 +119,6 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
   const [clients, setClients] = useState<ClientProfile[]>(INITIAL_CLIENTS);
   const [packages, setPackages] = useState<ClientPackage[]>(INITIAL_PACKAGES);
   const [expenses, setExpenses] = useState<SalonExpense[]>(INITIAL_EXPENSES);
-  const [beforeAfterItems] = useState<BeforeAfterItem[]>(INITIAL_BEFORE_AFTER);
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -656,7 +650,6 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
         expenses,
         addExpense,
         deleteExpense,
-        beforeAfterItems,
         cart,
         addToCart,
         removeFromCart,

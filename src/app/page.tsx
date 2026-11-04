@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useSalon } from '@/context/SalonContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import BeforeAfterSlider from '@/components/BeforeAfterSlider';
 import SkinConsultationModal from '@/components/SkinConsultationModal';
 import { SALON_INFO, SALON_GALLERY_IMAGES, GOOGLE_REVIEWS_DATA } from '@/data/initialData';
 import { SalonService } from '@/types';
@@ -449,9 +448,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Interactive Before & After Showcase */}
-      <BeforeAfterSlider />
 
       {/* About & Studio Atmosphere (#hakkimizda) */}
       <section id="hakkimizda" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

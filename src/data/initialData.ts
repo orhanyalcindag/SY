@@ -5,7 +5,6 @@ import {
   ClientProfile,
   ClientPackage,
   SalonExpense,
-  BeforeAfterItem,
 } from '@/types';
 
 export const SALON_INFO = {
@@ -550,49 +549,6 @@ export const INITIAL_EXPENSES: SalonExpense[] = [
     amount: 1800,
     date: '2026-11-03',
     note: 'Kırklareli & Lüleburgaz hedefli dijital kampanya.',
-  },
-];
-
-export const INITIAL_BEFORE_AFTER: BeforeAfterItem[] = [
-  {
-    id: 'ba-1',
-    title: 'Medikal Hydrafacial & Gözenek Arındırma',
-    category: 'Cilt Bakımı',
-    description: 'Tek seansta vakumla temizlenen siyah noktalar, küçülen gözenekler ve hyaluronik asit infüzyonuyla gelen doğal cam cilt ışıltısı.',
-    beforeImage: '/images/hydrafacial.jpg',
-    afterImage: '/images/somon-dna.jpg',
-    sessionsCount: 'Tek Seans Sonucu',
-    highlightTag: 'Işıltılı Cam Cilt',
-  },
-  {
-    id: 'ba-2',
-    title: 'Kişiye Özel El Çizimi Nail Art & Jel Tırnak',
-    category: 'Protez Tırnak & Manikür',
-    description: 'Yıpranmış ve kırılgan tırnak yapısının medikal manikürle onarılıp dayanıklı jel tırnak ve altın detaylı el çizimiyle tasarlanması.',
-    beforeImage: '/images/manicure.jpg',
-    afterImage: '/images/nail-art.jpg',
-    sessionsCount: '4 Hafta Kalıcı',
-    highlightTag: 'Kırılmayan Formül',
-  },
-  {
-    id: 'ba-3',
-    title: 'Buz Başlıklı Hibrit Lazer Epilasyon',
-    category: 'Lazer Epilasyon',
-    description: '-4°C soğutmalı acısız başlık ile 4 seansta %85 oranında pürüzsüzlük ve batık sorunlarının tamamen ortadan kalkması.',
-    beforeImage: '/images/laser.jpg',
-    afterImage: '/images/hero.jpg',
-    sessionsCount: '4. Seans Ara Kontrol',
-    highlightTag: '%85 Kalıcı Azalma',
-  },
-  {
-    id: 'ba-4',
-    title: 'Volume İpek Kirpik & Kaş Laminasyonu',
-    category: 'İpek Kirpik & Kaş',
-    description: 'Doğal kirpiklere zarar vermeden uygulanan ipeksi hafiflikte hacimli kirpikler ve yukarı taranmış simetrik kaş formasyonu.',
-    beforeImage: '/images/laminasyon.jpg',
-    afterImage: '/images/lashes.jpg',
-    sessionsCount: '6-8 Hafta Kalıcı',
-    highlightTag: 'Doğal & Etkileyici',
   },
 ];
 

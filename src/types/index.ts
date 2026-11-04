@@ -103,15 +103,3 @@ export interface SalonExpense {
   date: string;
   note?: string;
 }
-
-// 4. Before / After Item
-export interface BeforeAfterItem {
-  id: string;
-  title: string;
-  category: ServiceCategory;
-  description: string;
-  beforeImage: string;
-  afterImage: string;
-  sessionsCount: string;
-  highlightTag: string;
-}
