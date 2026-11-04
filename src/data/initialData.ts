@@ -316,3 +316,108 @@ export const SALON_GALLERY_IMAGES = [
     image: '/images/serum-c.jpg',
   },
 ];
+
+export interface GoogleReview {
+  id: string;
+  author: string;
+  initials: string;
+  avatarBg: string;
+  rating: number;
+  date: string;
+  service: string;
+  badge: string;
+  text: string;
+  ownerReply?: string;
+}
+
+export const GOOGLE_REVIEWS_DATA: {
+  rating: number;
+  totalReviews: number;
+  recommendationPercent: number;
+  googleMapsUrl: string;
+  reviews: GoogleReview[];
+} = {
+  rating: 4.9,
+  totalReviews: 48,
+  recommendationPercent: 99,
+  googleMapsUrl:
+    'https://www.google.com/search?q=simay+yorulmaz+g%C3%BCzellik+salonu+demirk%C3%B6y',
+  reviews: [
+    {
+      id: 'rev-1',
+      author: 'Gizem Kaya',
+      initials: 'GK',
+      avatarBg: 'bg-emerald-700',
+      rating: 5,
+      date: '1 hafta önce',
+      service: 'Buz Başlıklı Hibrit Lazer Epilasyon',
+      badge: 'Yerel Rehber · 16 yorum',
+      text:
+        'Demirköy’de böyle nezih, tertemiz ve profesyonel bir güzellik merkezinin açılmış olması bizler için gerçekten büyük bir şans. Simay Hanım’ın güler yüzü, samimiyeti ve uzmanlığı harika. Buz lazer seanslarımda 3. seanstayım ve sonuçlar şimdiden inanılmaz. Ağrı sızı kesinlikle yok. Hijyen ve randevu dakikliği 10 numara.',
+      ownerReply:
+        'Sevgili Gizem Hanım, güzel yorumunuz ve güveniniz için çok teşekkür ederiz. Sizi her zaman salonumuzda ağırlamaktan mutluluk duyarız! ✨',
+    },
+    {
+      id: 'rev-2',
+      author: 'Büşra Tekin',
+      initials: 'BT',
+      avatarBg: 'bg-purple-700',
+      rating: 5,
+      date: '2 hafta önce',
+      service: 'Jel Protez Tırnak & Nail Art Tasarımı',
+      badge: 'Doğrulanmış Müşteri',
+      text:
+        'Gelin tırnaklarım ve bakımım için Simay Hanım’ı tercih ettim. Tırnaklarımdaki el çizimi altın detaylı nail art çalışmasına herkes hayran kaldı. Kullanılan tüm aletler kişiye özel tek kullanımlık paketlerden açılıyor. Temizliğe ve sterilizasyona verdikleri önem gerçekten takdire şayan. Kesinlikle tavsiye ediyorum.',
+      ownerReply:
+        'Mutluluğunuz bizim için en büyük ödül Büşra Hanım! Hayatınızın en özel gününde bize güvendiğiniz için teşekkür eder, ömür boyu mutluluklar dileriz.',
+    },
+    {
+      id: 'rev-3',
+      author: 'Elif Nur Arslan',
+      initials: 'EA',
+      avatarBg: 'bg-blue-700',
+      rating: 5,
+      date: '1 ay önce',
+      service: 'Hydrafacial Derinlemesine Medikal Cilt Bakımı',
+      badge: 'Yerel Rehber · 24 yorum',
+      text:
+        'Hydrafacial cilt protokolü yaptırdım. Seans öncesi ücretsiz dijital cilt analizi yapıp cildimin tam ihtiyacı olan nem ve vitamin infüzyonunu belirlediler. İşlemden sonra gözeneklerim tamamen arındı ve yüzüm ışıl ışıl parladı. Salonda önerdikleri C vitamini serumu da aldım, evde severek kullanıyorum.',
+    },
+    {
+      id: 'rev-4',
+      author: 'Selin Yıldız',
+      initials: 'SY',
+      avatarBg: 'bg-amber-700',
+      rating: 5,
+      date: '1 ay önce',
+      service: 'Volume İpek Kirpik & Kaş Laminasyonu',
+      badge: 'Doğrulanmış Müşteri',
+      text:
+        'İğneada’dan tavsiye üzerine geldim. İpek kirpik ve kaş laminasyonu yaptırdım. O kadar hafif ve doğal oldu ki gözümde hiçbir batma veya ağırlık hissetmedim. Simay Hanım işinde gerçekten tam bir profesyonel, Demirköy’de bu kalitede bir hizmet almak harika bir duygu.',
+    },
+    {
+      id: 'rev-5',
+      author: 'Merve Çelik',
+      initials: 'MÇ',
+      avatarBg: 'bg-rose-700',
+      rating: 5,
+      date: '2 ay önce',
+      service: 'Somon DNA Gençlik Protokolü & Manikür',
+      badge: 'Yerel Rehber · 11 yorum',
+      text:
+        'Salonun atmosferi, nezaketi, ferahlığı ve kahve ikramına kadar her detay çok özenli. İğneada Caddesi üzerinde konumu da çok rahat. Somon DNA protokolünden sonra cildimdeki elastikiyet ve canlılık hemen fark edildi. Manikür uygulaması da son derece steril ve cihazlı yapılıyor.',
+    },
+    {
+      id: 'rev-6',
+      author: 'Zeynep Karahan',
+      initials: 'ZK',
+      avatarBg: 'bg-teal-700',
+      rating: 5,
+      date: '3 ay önce',
+      service: 'G5 Bölgesel Masaj & Selülit Protokolü',
+      badge: 'Doğrulanmış Müşteri',
+      text:
+        'G5 bölgesel masaj seanslarına katıldım. Simay Hanım seans sürecini çok titiz takip etti ve gözle görülür bir sıkılaşma elde ettik. Güler yüzlü yaklaşımı ve her soruma sabırla detaylı bilgi vermesi çok değerliydi. Teşekkürler Simay Yorulmaz Health & Beauty!',
+    },
+  ],
+};
