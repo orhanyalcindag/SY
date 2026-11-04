@@ -11,6 +11,10 @@ import {
   SalonService,
   SalonProduct,
   SalonAppointment,
+  ClientProfile,
+  ClientPackage,
+  SalonExpense,
+  ExpenseCategory,
 } from '@/types';
 import {
   Calendar,
@@ -44,6 +48,11 @@ import {
   Percent,
   Lock,
   Unlock,
+  Bell,
+  Gift,
+  FileText,
+  CreditCard,
+  Receipt,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
@@ -61,6 +70,7 @@ export default function AdminPage() {
     addAppointment,
     updateAppointmentStatus,
     deleteAppointment,
+    markAppointmentReminded,
     timeSlots,
     addTimeSlot,
     removeTimeSlot,
@@ -73,14 +83,28 @@ export default function AdminPage() {
     toggleBlockSlot,
     isDateBlocked,
     isSlotBlocked,
+    clients,
+    updateClientNotes,
+    addLoyaltyPoints,
+    getClientByPhone,
+    packages,
+    addPackage,
+    consumeSession,
+    deletePackage,
+    expenses,
+    addExpense,
+    deleteExpense,
     notification,
   } = useSalon();
 
   // Active tab navigation
-  const [activeTab, setActiveTab] = useState<'weekly' | 'appointments' | 'slots' | 'services' | 'products' | 'finance'>('weekly');
+  const [activeTab, setActiveTab] = useState<
+    'weekly' | 'appointments' | 'clients' | 'packages' | 'slots' | 'services' | 'products' | 'finance'
+  >('weekly');
 
   // Client-safe Date initialization
   const [todayStr, setTodayStr] = useState('2026-11-04');
+  const [tomorrowStr, setTomorrowStr] = useState('2026-11-05');
   const [currentWeekMonday, setCurrentWeekMonday] = useState<Date>(new Date('2026-11-02T00:00:00'));
   const [weekOffset, setWeekOffset] = useState(0);
 
@@ -102,6 +126,31 @@ export default function AdminPage() {
 
   // Quick Booking Modal from Weekly Calendar Click
   const [isQuickBookingModalOpen, setIsQuickBookingModalOpen] = useState(false);
+
+  // CRM Client Drawer / Modal State
+  const [selectedClient, setSelectedClient] = useState<ClientProfile | null>(null);
+  const [clientSearch, setClientSearch] = useState('');
+  const [clientNoteEdit, setClientNoteEdit] = useState('');
+  const [pointAddInput, setPointAddInput] = useState(50);
+
+  // Package Management State
+  const [isAddPackageOpen, setIsAddPackageOpen] = useState(false);
+  const [pkgClientName, setPkgClientName] = useState('');
+  const [pkgClientPhone, setPkgClientPhone] = useState('+90 5');
+  const [pkgName, setPkgName] = useState('Tüm Vücut Buz Başlıklı Hibrit Lazer (8 Seans)');
+  const [pkgCategory, setPkgCategory] = useState<ServiceCategory>('Lazer Epilasyon');
+  const [pkgTotalSessions, setPkgTotalSessions] = useState(8);
+  const [pkgTotalPrice, setPkgTotalPrice] = useState(9500);
+  const [pkgPaidAmount, setPkgPaidAmount] = useState(9500);
+  const [pkgNotes, setPkgNotes] = useState('');
+
+  // Expense Management State
+  const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
+  const [expTitle, setExpTitle] = useState('');
+  const [expCategory, setExpCategory] = useState<ExpenseCategory>('Kozmetik & Sarf Malzeme');
+  const [expAmount, setExpAmount] = useState(1500);
+  const [expDate, setExpDate] = useState('2026-11-04');
+  const [expNote, setExpNote] = useState('');
 
   // Appointment filters
   const [aptSearch, setAptSearch] = useState('');
@@ -133,7 +182,13 @@ export default function AdminPage() {
     const formattedToday = `${yyyy}-${mm}-${dd}`;
     setTodayStr(formattedToday);
     setNewDate(formattedToday);
+    setExpDate(formattedToday);
     setManualBlockDateInput(formattedToday);
+
+    const tmrw = new Date(now);
+    tmrw.setDate(now.getDate() + 1);
+    const tmrwFormatted = `${tmrw.getFullYear()}-${String(tmrw.getMonth() + 1).padStart(2, '0')}-${String(tmrw.getDate()).padStart(2, '0')}`;
+    setTomorrowStr(tmrwFormatted);
 
     // Calculate Monday of the current week
     const day = now.getDay(); // 0 is Sunday, 1 is Monday
@@ -157,6 +212,14 @@ export default function AdminPage() {
     .filter((a) => a.status === 'TAMAMLANDI')
     .reduce((sum, a) => sum + a.price, 0);
   const pendingCount = appointments.filter((a) => a.status === 'BEKLEMEDE' || a.status === 'ONAYLANDI').length;
+
+  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const netProfit = completedRevenue - totalExpenses;
+
+  // Tomorrow's appointments for No-Show reminder
+  const tomorrowAppointments = appointments.filter(
+    (a) => a.date === tomorrowStr && a.status !== 'IPTAL'
+  );
 
   // Calculate 7 days for the currently selected week
   const getWeekDays = () => {
@@ -228,25 +291,21 @@ export default function AdminPage() {
       return;
     }
 
-    // 1. Past date check
     if (newDate < todayStr) {
       setFormError('Geçmiş bir tarihe randevu kaydedilemez. Lütfen bugünü veya ileri bir tarihi seçiniz.');
       return;
     }
 
-    // 2. Closed Day Check
     if (isDateBlocked(newDate)) {
       setFormError(`Seçilen ${newDate} tarihinde salon hizmete kapalıdır. Lütfen açık olan bir gün seçiniz.`);
       return;
     }
 
-    // 3. Closed Slot Check
     if (isSlotBlocked(newDate, newTime)) {
       setFormError(`Seçilen ${newDate} tarihinde saat ${newTime} randevulara kapatılmıştır. Lütfen müsait bir saat seçiniz.`);
       return;
     }
 
-    // 4. Occupied slot check
     if (isSlotBooked(newDate, newTime)) {
       setFormError(`Seçilen ${newDate} tarihinde saat ${newTime} doludur. Lütfen müsait bir saat seçiniz.`);
       return;
@@ -288,6 +347,49 @@ export default function AdminPage() {
     if (!trimmed) return;
     addTimeSlot(trimmed);
     setNewSlotInput('');
+  };
+
+  // Handle Add Package
+  const handleCreatePackage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pkgClientName.trim() || pkgClientPhone.length < 10) return;
+
+    addPackage({
+      clientName: pkgClientName,
+      clientPhone: pkgClientPhone,
+      packageName: pkgName,
+      category: pkgCategory,
+      totalSessions: Number(pkgTotalSessions),
+      completedSessions: 0,
+      totalPrice: Number(pkgTotalPrice),
+      paidAmount: Number(pkgPaidAmount),
+      startDate: todayStr,
+      notes: pkgNotes || 'Yeni paket satışı.',
+    });
+
+    setPkgClientName('');
+    setPkgClientPhone('+90 5');
+    setPkgNotes('');
+    setIsAddPackageOpen(false);
+  };
+
+  // Handle Add Expense
+  const handleCreateExpense = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!expTitle.trim() || expAmount <= 0) return;
+
+    addExpense({
+      title: expTitle,
+      category: expCategory,
+      amount: Number(expAmount),
+      date: expDate || todayStr,
+      note: expNote,
+    });
+
+    setExpTitle('');
+    setExpAmount(1500);
+    setExpNote('');
+    setIsAddExpenseOpen(false);
   };
 
   // Handle New Service Submit
@@ -344,6 +446,37 @@ export default function AdminPage() {
     window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encoded}`, '_blank');
   };
 
+  // Send WhatsApp No-Show Reminder
+  const handleSendReminderWhatsApp = (apt: SalonAppointment) => {
+    let msg = `*✨ Sayın ${apt.clientName}, Simay Yorulmaz Health & Beauty Randevu Hatırlatması ✨*\n\n`;
+    msg += `Yarın saat *${apt.time}*'de salonumuzda *${apt.serviceName}* randevunuz bulunmaktadır.\n\n`;
+    msg += `📍 *Adres:* ${SALON_INFO.address}\n\n`;
+    msg += `Randevunuza katılım durumunuzu bu mesaja "Evet, geleceğim" veya "Saat değişikliği rica ediyorum" şeklinde yanıtlayarak teyit etmenizi rica ederiz.\n\n`;
+    msg += `Sizi ağırlamayı sabırsızlıkla bekliyoruz! 🌸`;
+
+    const encoded = encodeURIComponent(msg);
+    const cleanPhone = apt.clientPhone.replace(/[^0-9]/g, '');
+    window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encoded}`, '_blank');
+    markAppointmentReminded(apt.id);
+  };
+
+  // Send WhatsApp Package Session Update
+  const handleSendPackageSessionWhatsApp = (pkg: ClientPackage) => {
+    const remaining = pkg.totalSessions - pkg.completedSessions;
+    let msg = `*✨ Sayın ${pkg.clientName}, Simay Yorulmaz Health & Beauty Seans Bilgilendirmesi ✨*\n\n`;
+    msg += `Bugün *${pkg.packageName}* paketinizin *${pkg.completedSessions}. seansı* başarıyla tamamlanmıştır.\n\n`;
+    msg += `📊 *Kalan Seans Sayınız:* ${remaining} Seans\n`;
+    if (remaining > 0) {
+      msg += `Bir sonraki seans randevunuzu oluşturmak için dilediğiniz zaman bu hattan bize ulaşabilirsiniz.`;
+    } else {
+      msg += `Tebrikler! Paketinizin tüm seansları başarıyla tamamlanmıştır. Bizi tercih ettiğiniz için teşekkür ederiz! 💖`;
+    }
+
+    const encoded = encodeURIComponent(msg);
+    const cleanPhone = pkg.clientPhone.replace(/[^0-9]/g, '');
+    window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encoded}`, '_blank');
+  };
+
   // Filtered Appointments
   const filteredAppointments = appointments.filter((apt) => {
     const matchesSearch =
@@ -353,6 +486,14 @@ export default function AdminPage() {
     const matchesStatus = aptStatusFilter === 'ALL' || apt.status === aptStatusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Filtered Clients
+  const filteredClients = clients.filter(
+    (c) =>
+      c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+      c.phone.includes(clientSearch) ||
+      (c.specialNotes && c.specialNotes.toLowerCase().includes(clientSearch.toLowerCase()))
+  );
 
   return (
     <div className="min-h-screen bg-[#0A0A0C] text-zinc-100 font-sans selection:bg-[#D4AF37] selection:text-black">
@@ -378,10 +519,10 @@ export default function AdminPage() {
                 SİMAY YORULMAZ
               </h1>
               <span className="px-2 py-0.5 rounded-md bg-[#D4AF37]/20 border border-[#D4AF37]/40 text-[#D4AF37] text-[10px] font-bold tracking-wider">
-                YÖNETİM PANELİ
+                YÖNETİM & CRM PANELİ
               </span>
             </div>
-            <p className="text-[10px] text-zinc-400">Demirköy Salon & Kasa Otomasyonu</p>
+            <p className="text-[10px] text-zinc-400">Demirköy Salon, Seans, Kasa & Danışan Otomasyonu</p>
           </div>
         </div>
 
@@ -426,41 +567,43 @@ export default function AdminPage() {
 
           <div className="p-5 rounded-2xl bg-zinc-950/90 border border-zinc-800/90 relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-zinc-400">Aktif Seanslar</span>
-              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
-                <Clock className="w-4 h-4" />
+              <span className="text-xs font-semibold text-zinc-400">Kayıtlı Danışan</span>
+              <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+                <User className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-black text-white mt-2">
-              {pendingCount}
+            <div className="text-2xl font-black text-purple-400 mt-2">
+              {clients.length} Kişi
             </div>
-            <p className="text-[11px] text-zinc-500 mt-1">Onaylanan veya bekleyen</p>
+            <p className="text-[11px] text-zinc-500 mt-1">CRM dosya & formül hafızası</p>
           </div>
 
           <div className="p-5 rounded-2xl bg-zinc-950/90 border border-zinc-800/90 relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-zinc-400">Haftalık Ciro</span>
+              <span className="text-xs font-semibold text-zinc-400">Net Salon Kârı</span>
               <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
                 <TrendingUp className="w-4 h-4" />
               </div>
             </div>
             <div className="text-2xl font-black text-emerald-400 mt-2">
-              {formatCurrency(weeklyRevenue)}
+              {formatCurrency(netProfit)}
             </div>
-            <p className="text-[11px] text-zinc-500 mt-1">Toplam Ciro: {formatCurrency(totalExpectedRevenue)}</p>
+            <p className="text-[11px] text-zinc-500 mt-1">
+              Gelir: {formatCurrency(completedRevenue)} · Gider: {formatCurrency(totalExpenses)}
+            </p>
           </div>
 
           <div className="p-5 rounded-2xl bg-zinc-950/90 border border-zinc-800/90 relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-zinc-400">Kapalı Slot & Gün</span>
-              <div className="p-2 rounded-xl bg-red-500/10 text-red-400">
-                <Lock className="w-4 h-4" />
+              <span className="text-xs font-semibold text-zinc-400">Aktif Paketler</span>
+              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+                <Layers className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl font-black text-red-400 mt-2">
-              {blockedWeeklySlots} Slot
+            <div className="text-2xl font-black text-blue-400 mt-2">
+              {packages.length} Paket
             </div>
-            <p className="text-[11px] text-zinc-500 mt-1">Bu haftaki kilitli alanlar</p>
+            <p className="text-[11px] text-zinc-500 mt-1">Seanslı lazer & cilt takibi</p>
           </div>
         </div>
 
@@ -486,8 +629,44 @@ export default function AdminPage() {
                 : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
             }`}
           >
+            <Clock className="w-4 h-4" />
+            <span>Randevular & Hatırlatıcı ({appointments.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('clients')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              activeTab === 'clients'
+                ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
+                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+            }`}
+          >
             <User className="w-4 h-4" />
-            <span>Randevu Listesi & Hızlı Kayıt ({appointments.length})</span>
+            <span>Danışan Dosyası & CRM ({clients.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('packages')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              activeTab === 'packages'
+                ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
+                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>Paket & Seans Takip ({packages.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('finance')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              activeTab === 'finance'
+                ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
+                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+            }`}
+          >
+            <DollarSign className="w-4 h-4" />
+            <span>Kasa, Masraflar & Net Kâr</span>
           </button>
 
           <button
@@ -498,8 +677,8 @@ export default function AdminPage() {
                 : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
             }`}
           >
-            <Clock className="w-4 h-4" />
-            <span>Saat, Slot & Gün Kapatma ({timeSlots.length})</span>
+            <Lock className="w-4 h-4" />
+            <span>Saat & Gün Kapatma</span>
           </button>
 
           <button
@@ -523,19 +702,7 @@ export default function AdminPage() {
             }`}
           >
             <ShoppingBag className="w-4 h-4" />
-            <span>Ürünler & WhatsApp Satış ({products.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('finance')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
-              activeTab === 'finance'
-                ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
-            }`}
-          >
-            <DollarSign className="w-4 h-4" />
-            <span>Kasa & Rapor</span>
+            <span>WhatsApp Mağaza ({products.length})</span>
           </button>
         </div>
 
@@ -593,53 +760,16 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Weekly Capacity Indicators */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-zinc-500 border border-zinc-400" />
-                  <span className="text-xs text-zinc-300 font-medium">Boş Slotlar</span>
-                </div>
-                <span className="text-xs font-bold text-zinc-200">{availableWeeklySlots} Boş</span>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#D4AF37] shadow-sm shadow-[#D4AF37]/50" />
-                  <span className="text-xs text-zinc-300 font-medium">Dolu Seanslar</span>
-                </div>
-                <span className="text-xs font-bold text-[#D4AF37]">{bookedWeeklySlots} Dolu</span>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm shadow-red-500/50" />
-                  <span className="text-xs text-zinc-300 font-medium">Kapalı / Bloke</span>
-                </div>
-                <span className="text-xs font-bold text-red-400">{blockedWeeklySlots} Kapalı</span>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-zinc-700" />
-                  <span className="text-xs text-zinc-400 font-medium">Geçmiş Günler</span>
-                </div>
-                <span className="text-xs font-bold text-zinc-400">Kilitli</span>
-              </div>
-            </div>
-
             {/* Equal-Sized Weekly Calendar Matrix Table */}
             <div className="rounded-2xl bg-zinc-950 border border-zinc-800 shadow-2xl">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse table-fixed min-w-[1020px]">
                   <thead>
                     <tr className="border-b border-zinc-800 bg-[#0F0F12]">
-                      {/* Fixed Time column width */}
                       <th className="w-20 py-3.5 px-3 text-[11px] font-bold text-zinc-400 uppercase tracking-wider sticky left-0 bg-[#0F0F12] z-20 border-r border-zinc-800 text-center">
                         Saat
                       </th>
 
-                      {/* 7 Strictly Equal Day Columns */}
                       {weekDays.map((day) => {
                         const dayBlocked = isDateBlocked(day.dateStr);
 
@@ -675,7 +805,6 @@ export default function AdminPage() {
                               )}
                             </div>
 
-                            {/* Day Close / Open Toggle Button */}
                             <button
                               type="button"
                               onClick={() => toggleBlockDate(day.dateStr)}
@@ -706,7 +835,6 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-zinc-900">
                     {timeSlots.map((slot, slotIndex) => (
                       <tr key={slot} className="hover:bg-zinc-900/20 transition">
-                        {/* Time Slot Label Cell */}
                         <td className="w-20 h-[92px] p-2 font-mono text-xs font-bold text-[#D4AF37] sticky left-0 bg-zinc-950 border-r border-zinc-800 z-10 text-center align-middle">
                           <div className="flex flex-col items-center justify-center gap-1">
                             <Clock className="w-3.5 h-3.5 text-zinc-500" />
@@ -714,14 +842,13 @@ export default function AdminPage() {
                           </div>
                         </td>
 
-                        {/* 7 Days of the Week (Equal Height & Width) */}
                         {weekDays.map((day, dayIndex) => {
                           const isBlocked = isDateBlocked(day.dateStr) || isSlotBlocked(day.dateStr, slot);
                           const apt = appointments.find(
                             (a) => a.date === day.dateStr && a.time === slot && a.status !== 'IPTAL'
                           );
 
-                          // 1. BOOKED APPOINTMENT CELL (DOLU)
+                          // BOOKED APPOINTMENT
                           if (apt) {
                             return (
                               <td
@@ -773,7 +900,7 @@ export default function AdminPage() {
                                     </span>
                                   </div>
 
-                                  {/* Floating Detail Bubble (Baloncuk) on Hover */}
+                                  {/* Hover Floating Tooltip Baloncuk */}
                                   <div
                                     className={`absolute z-40 ${
                                       slotIndex < 2 ? 'top-full mt-2' : 'bottom-full mb-2'
@@ -785,7 +912,6 @@ export default function AdminPage() {
                                         : 'left-1/2 -translate-x-1/2'
                                     } w-64 p-3 rounded-2xl bg-[#0F0F12] border border-[#D4AF37] text-white shadow-2xl shadow-black/95 backdrop-blur-md opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200`}
                                   >
-                                    {/* Arrow pointing to cell */}
                                     <div
                                       className={`absolute ${
                                         slotIndex < 2
@@ -806,17 +932,7 @@ export default function AdminPage() {
                                           <User className="w-3.5 h-3.5 text-[#D4AF37]" />
                                           <span>{apt.clientName}</span>
                                         </div>
-                                        <span
-                                          className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase ${
-                                            apt.status === 'TAMAMLANDI'
-                                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                              : apt.status === 'ISLEMDE'
-                                              ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                                              : apt.status === 'ONAYLANDI'
-                                              ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30'
-                                              : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                                          }`}
-                                        >
+                                        <span className="text-[9px] px-1.5 py-0.5 rounded font-black uppercase bg-[#D4AF37]/20 text-[#D4AF37]">
                                           {apt.status}
                                         </span>
                                       </div>
@@ -835,11 +951,6 @@ export default function AdminPage() {
                                         </span>
                                       </div>
 
-                                      <div className="flex items-center gap-2 text-[10px] text-zinc-400">
-                                        <Calendar className="w-3 h-3 text-zinc-500" />
-                                        <span>{apt.date} · {apt.time}</span>
-                                      </div>
-
                                       {apt.notes && (
                                         <div className="text-[10px] text-zinc-300 italic bg-black/50 p-1.5 rounded-lg border border-zinc-800/80">
                                           &ldquo;{apt.notes}&rdquo;
@@ -856,7 +967,7 @@ export default function AdminPage() {
                             );
                           }
 
-                          // 2. CLOSED / BLOCKED CELL (KAPALI)
+                          // CLOSED / BLOCKED CELL
                           if (isBlocked) {
                             return (
                               <td
@@ -879,7 +990,6 @@ export default function AdminPage() {
                                       }
                                     }}
                                     className="text-[10px] text-zinc-400 hover:text-white underline mt-0.5 cursor-pointer"
-                                    title="Bu saati tekrar randevuya aç"
                                   >
                                     Tekrar Aç
                                   </button>
@@ -888,7 +998,7 @@ export default function AdminPage() {
                             );
                           }
 
-                          // 3. PAST DATE CELL (GEÇMİŞ)
+                          // PAST CELL
                           if (day.isPast) {
                             return (
                               <td
@@ -904,7 +1014,7 @@ export default function AdminPage() {
                             );
                           }
 
-                          // 4. AVAILABLE CELL (BOŞ - HEPSİ EŞİT)
+                          // AVAILABLE CELL ("Boş")
                           return (
                             <td
                               key={day.dateStr + slot}
@@ -923,7 +1033,6 @@ export default function AdminPage() {
                                   <Plus className="w-2.5 h-2.5" /> Randevu
                                 </span>
 
-                                {/* Quick button to close/block this hour */}
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -931,7 +1040,7 @@ export default function AdminPage() {
                                     toggleBlockSlot(day.dateStr, slot);
                                   }}
                                   className="absolute top-1 right-1 p-1 rounded-md text-zinc-600 hover:text-red-400 hover:bg-zinc-800/80 transition opacity-0 group-hover:opacity-100"
-                                  title={`${day.dayName} ${slot} saatini randevulara kapat`}
+                                  title={`${day.dayName} ${slot} saatini kapat`}
                                 >
                                   <Lock className="w-3 h-3" />
                                 </button>
@@ -948,279 +1057,854 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 2: APPOINTMENTS LIST & QUICK BOOKING FORM */}
+        {/* TAB 2: APPOINTMENTS & NO-SHOW REMINDER */}
         {activeTab === 'appointments' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Quick Add Appointment Form (Left Column) */}
-            <div className="lg:col-span-1">
-              <div className="p-6 rounded-2xl bg-zinc-950/90 border border-zinc-800 sticky top-24">
-                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-zinc-800">
-                  <div className="p-2 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37]">
-                    <Plus className="w-4 h-4" />
+          <div className="space-y-6">
+            {/* Tomorrow's No-Show Reminder Banner */}
+            {tomorrowAppointments.length > 0 && (
+              <div className="p-5 rounded-2xl bg-amber-950/40 border border-amber-800/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400">
+                    <Bell className="w-5 h-5 animate-bounce" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white">Kolay Randevu Kaydı</h3>
-                    <p className="text-[11px] text-zinc-400">Danışanı hemen takvime ekleyin</p>
+                    <h4 className="text-sm font-bold text-white">
+                      Yarın İçin {tomorrowAppointments.length} Randevu Bulunuyor (No-Show Hatırlatma)
+                    </h4>
+                    <p className="text-xs text-zinc-400">
+                      Danışanlara tek tıkla WhatsApp hatırlatma mesajı göndererek randevu gelmeme oranını sıfırlayın.
+                    </p>
                   </div>
                 </div>
 
-                {formError && (
-                  <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-800 text-red-300 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                    <span>{formError}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-amber-400 font-bold">
+                    {tomorrowAppointments.filter((a) => a.reminded).length} / {tomorrowAppointments.length} Hatırlatıldı
+                  </span>
+                </div>
+              </div>
+            )}
 
-                <form onSubmit={handleCreateAppointment} className="space-y-4">
-                  <div>
-                    <label className="block text-[11px] text-zinc-400 mb-1">Danışan Adı Soyadı *</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500" />
-                      <input
-                        type="text"
-                        required
-                        value={newClientName}
-                        onChange={(e) => setNewClientName(e.target.value)}
-                        placeholder="Örn: Zeynep Arslan"
-                        className="w-full pl-8 pr-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] text-zinc-400 mb-1">Telefon Numarası *</label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500" />
-                      <input
-                        type="tel"
-                        required
-                        value={newClientPhone}
-                        onChange={(e) => setNewClientPhone(e.target.value)}
-                        placeholder="+90 5XX XXX XX XX"
-                        className="w-full pl-8 pr-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] text-zinc-400 mb-1">Uygulanacak İşlem *</label>
-                    <select
-                      value={newSelectedServiceId}
-                      onChange={(e) => setNewSelectedServiceId(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
-                    >
-                      {services.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} ({formatCurrency(s.price)})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] text-zinc-400 mb-1">
-                        Tarih <span className="text-zinc-500">(Geçmiş seçilemez)</span>
-                      </label>
-                      <input
-                        type="date"
-                        min={todayStr}
-                        value={newDate}
-                        onChange={(e) => setNewDate(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
-                      />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Quick Add Appointment Form (Left Column) */}
+              <div className="lg:col-span-1">
+                <div className="p-6 rounded-2xl bg-zinc-950/90 border border-zinc-800 sticky top-24">
+                  <div className="flex items-center gap-2 mb-4 pb-3 border-b border-zinc-800">
+                    <div className="p-2 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37]">
+                      <Plus className="w-4 h-4" />
                     </div>
                     <div>
-                      <label className="block text-[11px] text-zinc-400 mb-1">Randevu Saati</label>
+                      <h3 className="text-sm font-bold text-white">Kolay Randevu Kaydı</h3>
+                      <p className="text-[11px] text-zinc-400">Danışanı hemen takvime ekleyin</p>
+                    </div>
+                  </div>
+
+                  {formError && (
+                    <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-800 text-red-300 text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                      <span>{formError}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleCreateAppointment} className="space-y-4">
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">Danışan Adı Soyadı *</label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500" />
+                        <input
+                          type="text"
+                          required
+                          value={newClientName}
+                          onChange={(e) => setNewClientName(e.target.value)}
+                          placeholder="Örn: Zeynep Arslan"
+                          className="w-full pl-8 pr-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">Telefon Numarası *</label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500" />
+                        <input
+                          type="tel"
+                          required
+                          value={newClientPhone}
+                          onChange={(e) => setNewClientPhone(e.target.value)}
+                          placeholder="+90 5XX XXX XX XX"
+                          className="w-full pl-8 pr-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">Uygulanacak İşlem *</label>
                       <select
-                        value={newTime}
-                        onChange={(e) => setNewTime(e.target.value)}
+                        value={newSelectedServiceId}
+                        onChange={(e) => setNewSelectedServiceId(e.target.value)}
                         className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
                       >
-                        {timeSlots.map((slot) => {
-                          const occupied = isSlotBooked(newDate, slot);
-                          const blocked = isSlotBlocked(newDate, slot);
-                          const unavailable = occupied || blocked;
-                          return (
-                            <option key={slot} value={slot} disabled={unavailable}>
-                              {slot} {blocked ? '— (KAPALI)' : occupied ? '— (DOLU)' : '— (Müsait)'}
-                            </option>
-                          );
-                        })}
+                        {services.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} ({formatCurrency(s.price)})
+                          </option>
+                        ))}
                       </select>
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-[11px] text-zinc-400 mb-1">Özel Not</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] text-zinc-400 mb-1">
+                          Tarih <span className="text-zinc-500">(Geçmiş seçilemez)</span>
+                        </label>
+                        <input
+                          type="date"
+                          min={todayStr}
+                          value={newDate}
+                          onChange={(e) => setNewDate(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-zinc-400 mb-1">Randevu Saati</label>
+                        <select
+                          value={newTime}
+                          onChange={(e) => setNewTime(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                        >
+                          {timeSlots.map((slot) => {
+                            const occupied = isSlotBooked(newDate, slot);
+                            const blocked = isSlotBlocked(newDate, slot);
+                            const unavailable = occupied || blocked;
+                            return (
+                              <option key={slot} value={slot} disabled={unavailable}>
+                                {slot} {blocked ? '— (KAPALI)' : occupied ? '— (DOLU)' : '— (Müsait)'}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">Özel Not</label>
+                      <input
+                        type="text"
+                        value={newNotes}
+                        onChange={(e) => setNewNotes(e.target.value)}
+                        placeholder="Cilt hassasiyeti, tırnak rengi vb."
+                        className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#E5BF47] text-black font-extrabold text-xs shadow-lg shadow-[#D4AF37]/20 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Randevuyu Kaydet</span>
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              {/* Appointments Management Table */}
+              <div className="lg:col-span-2 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+                  <div className="relative w-full sm:w-72">
+                    <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500" />
                     <input
                       type="text"
-                      value={newNotes}
-                      onChange={(e) => setNewNotes(e.target.value)}
-                      placeholder="Cilt hassasiyeti, tırnak rengi vb."
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                      value={aptSearch}
+                      onChange={(e) => setAptSearch(e.target.value)}
+                      placeholder="Danışan adı, telefon veya işlem ara..."
+                      className="w-full pl-8 pr-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
                     />
                   </div>
 
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#E5BF47] text-black font-extrabold text-xs shadow-lg shadow-[#D4AF37]/20 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Randevuyu Kaydet</span>
-                  </button>
-                </form>
-              </div>
-            </div>
-
-            {/* Appointments Management Table (Right 2 Columns) */}
-            <div className="lg:col-span-2 space-y-4">
-              {/* Search & Filter Bar */}
-              <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-                <div className="relative w-full sm:w-72">
-                  <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500" />
-                  <input
-                    type="text"
-                    value={aptSearch}
-                    onChange={(e) => setAptSearch(e.target.value)}
-                    placeholder="Danışan adı, telefon veya işlem ara..."
-                    className="w-full pl-8 pr-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
-                  />
-                </div>
-
-                <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-                  {['ALL', 'BEKLEMEDE', 'ONAYLANDI', 'ISLEMDE', 'TAMAMLANDI', 'IPTAL'].map((st) => (
-                    <button
-                      key={st}
-                      onClick={() => setAptStatusFilter(st)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
-                        aptStatusFilter === st
-                          ? 'bg-zinc-800 text-[#D4AF37] border border-[#D4AF37]/40 font-bold'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      {st === 'ALL' ? 'Tümü' : st}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Appointments List */}
-              <div className="space-y-3">
-                {filteredAppointments.length === 0 ? (
-                  <div className="p-12 text-center rounded-2xl bg-zinc-950/50 border border-zinc-800 text-zinc-500 text-xs">
-                    Kayıtlı randevu bulunamadı.
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                    {['ALL', 'BEKLEMEDE', 'ONAYLANDI', 'ISLEMDE', 'TAMAMLANDI', 'IPTAL'].map((st) => (
+                      <button
+                        key={st}
+                        onClick={() => setAptStatusFilter(st)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
+                          aptStatusFilter === st
+                            ? 'bg-zinc-800 text-[#D4AF37] border border-[#D4AF37]/40 font-bold'
+                            : 'text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        {st === 'ALL' ? 'Tümü' : st}
+                      </button>
+                    ))}
                   </div>
-                ) : (
-                  filteredAppointments.map((apt) => (
-                    <div
-                      key={apt.id}
-                      className="p-4 rounded-2xl bg-zinc-950/90 border border-zinc-800/90 hover:border-zinc-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                    >
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-white">{apt.clientName}</span>
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
-                              apt.status === 'TAMAMLANDI'
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                : apt.status === 'ISLEMDE'
-                                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                : apt.status === 'ONAYLANDI'
-                                ? 'bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/20'
-                                : apt.status === 'IPTAL'
-                                ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                            }`}
-                          >
-                            {apt.status}
-                          </span>
-                        </div>
+                </div>
 
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
-                          <span className="text-zinc-200 font-medium">{apt.serviceName}</span>
-                          <span>•</span>
-                          <span className="text-[#D4AF37] font-semibold">{formatCurrency(apt.price)}</span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3 text-zinc-500" />
-                            {apt.date} · {apt.time}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-3 text-[11px] text-zinc-500">
-                          <span>{apt.clientPhone}</span>
-                          {apt.notes && <span>· Not: {apt.notes}</span>}
-                        </div>
-                      </div>
-
-                      {/* Status Buttons & Actions */}
-                      <div className="flex items-center gap-1.5 self-end sm:self-center">
-                        <button
-                          onClick={() => handleSendClientWhatsApp(apt)}
-                          className="p-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800 text-emerald-400 transition cursor-pointer"
-                          title="WhatsApp Bilgilendirme Gönder"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                        </button>
-
-                        {apt.status !== 'ONAYLANDI' && (
-                          <button
-                            onClick={() => updateAppointmentStatus(apt.id, 'ONAYLANDI')}
-                            className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-[11px] text-zinc-300 hover:text-white border border-zinc-800 cursor-pointer"
-                            title="Onayla"
-                          >
-                            Onayla
-                          </button>
-                        )}
-
-                        {apt.status !== 'ISLEMDE' && (
-                          <button
-                            onClick={() => updateAppointmentStatus(apt.id, 'ISLEMDE')}
-                            className="px-2.5 py-1.5 rounded-xl bg-blue-950/50 hover:bg-blue-900/60 text-[11px] text-blue-300 border border-blue-900 cursor-pointer"
-                            title="İşleme Al"
-                          >
-                            İşlemde
-                          </button>
-                        )}
-
-                        {apt.status !== 'TAMAMLANDI' && (
-                          <button
-                            onClick={() => updateAppointmentStatus(apt.id, 'TAMAMLANDI')}
-                            className="px-2.5 py-1.5 rounded-xl bg-emerald-950/50 hover:bg-emerald-900/60 text-[11px] text-emerald-300 border border-emerald-900 cursor-pointer"
-                            title="Tamamlandı"
-                          >
-                            Tamamla
-                          </button>
-                        )}
-
-                        {apt.status !== 'IPTAL' && (
-                          <button
-                            onClick={() => updateAppointmentStatus(apt.id, 'IPTAL')}
-                            className="px-2.5 py-1.5 rounded-xl bg-red-950/30 hover:bg-red-950 text-[11px] text-red-400 border border-red-900/40 cursor-pointer"
-                            title="İptal Et"
-                          >
-                            İptal
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => deleteAppointment(apt.id)}
-                          className="p-2 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-zinc-900 transition cursor-pointer"
-                          title="Kaydı Sil"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                <div className="space-y-3">
+                  {filteredAppointments.length === 0 ? (
+                    <div className="p-12 text-center rounded-2xl bg-zinc-950/50 border border-zinc-800 text-zinc-500 text-xs">
+                      Kayıtlı randevu bulunamadı.
                     </div>
-                  ))
-                )}
+                  ) : (
+                    filteredAppointments.map((apt) => (
+                      <div
+                        key={apt.id}
+                        className="p-4 rounded-2xl bg-zinc-950/90 border border-zinc-800/90 hover:border-zinc-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm text-white">{apt.clientName}</span>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                                apt.status === 'TAMAMLANDI'
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                  : apt.status === 'ISLEMDE'
+                                  ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                  : apt.status === 'ONAYLANDI'
+                                  ? 'bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/20'
+                                  : apt.status === 'IPTAL'
+                                  ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                              }`}
+                            >
+                              {apt.status}
+                            </span>
+
+                            {apt.reminded && (
+                              <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-bold flex items-center gap-1">
+                                <Check className="w-3 h-3" /> Hatırlatıldı
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
+                            <span className="text-zinc-200 font-medium">{apt.serviceName}</span>
+                            <span>•</span>
+                            <span className="text-[#D4AF37] font-semibold">{formatCurrency(apt.price)}</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-zinc-500" />
+                              {apt.date} · {apt.time}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-3 text-[11px] text-zinc-500">
+                            <span>{apt.clientPhone}</span>
+                            {apt.notes && <span>· Not: {apt.notes}</span>}
+                          </div>
+                        </div>
+
+                        {/* Status Buttons & Actions */}
+                        <div className="flex items-center gap-1.5 self-end sm:self-center">
+                          {apt.date === tomorrowStr && (
+                            <button
+                              onClick={() => handleSendReminderWhatsApp(apt)}
+                              className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                              title="Yarın için Hatırlatma Gönder"
+                            >
+                              <Bell className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Hatırlat</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleSendClientWhatsApp(apt)}
+                            className="p-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800 text-emerald-400 transition cursor-pointer"
+                            title="WhatsApp Onay Gönder"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                          </button>
+
+                          {apt.status !== 'ONAYLANDI' && (
+                            <button
+                              onClick={() => updateAppointmentStatus(apt.id, 'ONAYLANDI')}
+                              className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-[11px] text-zinc-300 hover:text-white border border-zinc-800 cursor-pointer"
+                              title="Onayla"
+                            >
+                              Onayla
+                            </button>
+                          )}
+
+                          {apt.status !== 'ISLEMDE' && (
+                            <button
+                              onClick={() => updateAppointmentStatus(apt.id, 'ISLEMDE')}
+                              className="px-2.5 py-1.5 rounded-xl bg-blue-950/50 hover:bg-blue-900/60 text-[11px] text-blue-300 border border-blue-900 cursor-pointer"
+                              title="İşleme Al"
+                            >
+                              İşlemde
+                            </button>
+                          )}
+
+                          {apt.status !== 'TAMAMLANDI' && (
+                            <button
+                              onClick={() => updateAppointmentStatus(apt.id, 'TAMAMLANDI')}
+                              className="px-2.5 py-1.5 rounded-xl bg-emerald-950/50 hover:bg-emerald-900/60 text-[11px] text-emerald-300 border border-emerald-900 cursor-pointer"
+                              title="Tamamla (+ ParaPuan Kazandırır)"
+                            >
+                              Tamamla
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => deleteAppointment(apt.id)}
+                            className="p-2 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-zinc-900 transition cursor-pointer"
+                            title="Kaydı Sil"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* TAB 3: SLOT & DAY MANAGEMENT (Randevu Saatleri, Slot ve Gün Kapatma) */}
+        {/* TAB 3: CLIENT DOSSIER & CRM */}
+        {activeTab === 'clients' && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif font-bold text-base text-white">
+                  Danışan Dosyası & Formül / Seans Hafızası (CRM)
+                </h3>
+                <p className="text-xs text-zinc-400 mt-1 max-w-2xl">
+                  Müşterilerinizin alerji, cilt hassasiyeti, oje rengi, boya formülü gibi özel notlarını ve kazandıkları <strong>ParaPuan</strong> bakiyelerini buradan takip edin.
+                </p>
+              </div>
+
+              <div className="relative w-full md:w-72">
+                <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500" />
+                <input
+                  type="text"
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                  placeholder="İsim, telefon veya formül ara..."
+                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+            </div>
+
+            {/* Clients Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredClients.map((client) => {
+                const clientApts = appointments.filter(
+                  (a) => a.clientPhone.replace(/[^0-9]/g, '') === client.phone.replace(/[^0-9]/g, '')
+                );
+                const clientPackages = packages.filter(
+                  (p) => p.clientPhone.replace(/[^0-9]/g, '') === client.phone.replace(/[^0-9]/g, '')
+                );
+                const totalSpent = clientApts.reduce((sum, a) => sum + (a.status === 'TAMAMLANDI' ? a.price : 0), 0);
+
+                return (
+                  <div
+                    key={client.phone}
+                    className="p-5 rounded-2xl bg-zinc-950 border border-zinc-800/90 hover:border-[#D4AF37]/50 transition flex flex-col justify-between space-y-4"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-serif font-bold text-base text-white">{client.name}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/30 text-[#D4AF37] text-[11px] font-bold flex items-center gap-1">
+                          <Gift className="w-3 h-3" /> {client.loyaltyPoints} ₺ ParaPuan
+                        </span>
+                      </div>
+
+                      <div className="text-xs text-zinc-400 font-mono mb-3">{client.phone}</div>
+
+                      {/* Special Notes & Formula Memory */}
+                      <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-xs space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-[#D4AF37] block">
+                          Özel Not & Formül Hafızası
+                        </span>
+                        <p className="text-zinc-300 italic">
+                          {client.specialNotes || 'Henüz özel not eklenmemiş.'}
+                        </p>
+                      </div>
+
+                      {/* Mini Stats */}
+                      <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-zinc-800/80 text-center">
+                        <div>
+                          <span className="text-[10px] text-zinc-500 block">Ziyaret</span>
+                          <span className="text-xs font-bold text-white">{clientApts.length} Seans</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-zinc-500 block">Paketler</span>
+                          <span className="text-xs font-bold text-blue-400">{clientPackages.length} Adet</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-zinc-500 block">Bıraktığı Ciro</span>
+                          <span className="text-xs font-bold text-emerald-400">{formatCurrency(totalSpent)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between border-t border-zinc-800">
+                      <button
+                        onClick={() => {
+                          setSelectedClient(client);
+                          setClientNoteEdit(client.specialNotes || '');
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>Notu & Puanı Düzenle</span>
+                      </button>
+
+                      <a
+                        href={`https://api.whatsapp.com/send?phone=${client.phone.replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800 text-emerald-400 transition"
+                        title="WhatsApp Mesajı Başlat"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: PACKAGES & SESSIONS TRACKING */}
+        {activeTab === 'packages' && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif font-bold text-base text-white">
+                  Paket & Seans Takip Modülü
+                </h3>
+                <p className="text-xs text-zinc-400 mt-1 max-w-2xl">
+                  Lazer epilasyon, bölgesel incelme ve medikal cilt bakım paketlerini tanımlayın; her seanstan sonra tek tıkla seansı düşüp danışana WhatsApp bilgilendirmesi gönderin.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsAddPackageOpen(!isAddPackageOpen)}
+                className="px-4 py-2 rounded-xl bg-[#D4AF37] hover:bg-[#E5BF47] text-black font-extrabold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Yeni Paket Satışı Tanımla</span>
+              </button>
+            </div>
+
+            {/* Add Package Form Card */}
+            {isAddPackageOpen && (
+              <form onSubmit={handleCreatePackage} className="p-6 rounded-2xl bg-zinc-950 border border-[#D4AF37]/40 space-y-4">
+                <h4 className="text-xs font-bold text-[#D4AF37] uppercase tracking-wider">
+                  Yeni Seanslı Paket Satışı Kaydı
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Danışan Adı Soyadı *</label>
+                    <input
+                      type="text"
+                      required
+                      value={pkgClientName}
+                      onChange={(e) => setPkgClientName(e.target.value)}
+                      placeholder="Örn: Zeynep Demir"
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Telefon Numarası *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={pkgClientPhone}
+                      onChange={(e) => setPkgClientPhone(e.target.value)}
+                      placeholder="+90 5XX XXX XX XX"
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Paket Adı *</label>
+                    <input
+                      type="text"
+                      required
+                      value={pkgName}
+                      onChange={(e) => setPkgName(e.target.value)}
+                      placeholder="Örn: 8 Seans Buz Lazer"
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Kategori</label>
+                    <select
+                      value={pkgCategory}
+                      onChange={(e) => setPkgCategory(e.target.value as ServiceCategory)}
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                    >
+                      <option value="Lazer Epilasyon">Lazer Epilasyon</option>
+                      <option value="Cilt Bakımı">Cilt Bakımı</option>
+                      <option value="Bölgesel İncelme">Bölgesel İncelme</option>
+                      <option value="Protez Tırnak & Manikür">Protez Tırnak & Manikür</option>
+                      <option value="İpek Kirpik & Kaş">İpek Kirpik & Kaş</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Toplam Seans Sayısı *</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      required
+                      value={pkgTotalSessions}
+                      onChange={(e) => setPkgTotalSessions(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Toplam Paket Tutarı (TL) *</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      required
+                      value={pkgTotalPrice}
+                      onChange={(e) => setPkgTotalPrice(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Tahsil Edilen Peşinat (TL) *</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      required
+                      value={pkgPaidAmount}
+                      onChange={(e) => setPkgPaidAmount(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">Not / Protokol Detayı</label>
+                  <input
+                    type="text"
+                    value={pkgNotes}
+                    onChange={(e) => setPkgNotes(e.target.value)}
+                    placeholder="Uygulanacak bölgeler, atış değerleri, taksit notu..."
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddPackageOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold cursor-pointer"
+                  >
+                    İptal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-[#D4AF37] hover:bg-[#E5BF47] text-black font-extrabold text-xs shadow-md cursor-pointer"
+                  >
+                    Paketi Kaydet
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Packages List */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {packages.map((pkg) => {
+                const remaining = pkg.totalSessions - pkg.completedSessions;
+                const progressPct = Math.round((pkg.completedSessions / pkg.totalSessions) * 100);
+                const debt = pkg.totalPrice - pkg.paidAmount;
+
+                return (
+                  <div
+                    key={pkg.id}
+                    className="p-5 rounded-2xl bg-zinc-950 border border-zinc-800/90 hover:border-zinc-700 transition flex flex-col justify-between space-y-4"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold uppercase text-[#D4AF37] px-2 py-0.5 rounded bg-[#D4AF37]/10">
+                          {pkg.category}
+                        </span>
+                        <span className="text-xs font-bold text-white font-mono">{pkg.clientPhone}</span>
+                      </div>
+
+                      <h4 className="font-serif font-bold text-base text-white">{pkg.packageName}</h4>
+                      <p className="text-xs text-zinc-400 mt-0.5">Danışan: <strong className="text-white">{pkg.clientName}</strong></p>
+
+                      {/* Progress Bar */}
+                      <div className="mt-4 space-y-1.5">
+                        <div className="flex justify-between text-xs font-semibold">
+                          <span className="text-zinc-300">
+                            {pkg.completedSessions} / {pkg.totalSessions} Seans Tamamlandı
+                          </span>
+                          <span className="text-[#D4AF37] font-bold">
+                            {remaining === 0 ? 'TAMAMLANDI' : `${remaining} Seans Kaldı`}
+                          </span>
+                        </div>
+                        <div className="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-[#997929] to-[#D4AF37] transition-all duration-500"
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Financial info & Notes */}
+                      <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs">
+                        <div>
+                          <span className="text-[10px] text-zinc-500 block">Paket Tutarı</span>
+                          <span className="font-bold text-white">{formatCurrency(pkg.totalPrice)}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-zinc-500 block">Tahsil Edilen</span>
+                          <span className="font-bold text-emerald-400">{formatCurrency(pkg.paidAmount)}</span>
+                        </div>
+                        {debt > 0 && (
+                          <div>
+                            <span className="text-[10px] text-zinc-500 block">Kalan Bakiye</span>
+                            <span className="font-bold text-red-400">{formatCurrency(debt)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {pkg.notes && (
+                        <p className="mt-3 text-[11px] text-zinc-400 italic bg-zinc-900/60 p-2 rounded-lg border border-zinc-800/60">
+                          {pkg.notes}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="pt-2 flex items-center justify-between border-t border-zinc-800">
+                      <button
+                        onClick={() => deletePackage(pkg.id)}
+                        className="p-2 text-zinc-500 hover:text-red-400 transition cursor-pointer"
+                        title="Paketi Sil"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleSendPackageSessionWhatsApp(pkg)}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                          title="WhatsApp Seans Durumu Gönder"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>WhatsApp Bilgilendir</span>
+                        </button>
+
+                        <button
+                          onClick={() => consumeSession(pkg.id)}
+                          disabled={remaining <= 0}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                            remaining <= 0
+                              ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                              : 'bg-[#D4AF37] hover:bg-[#E5BF47] text-black shadow-md'
+                          }`}
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Seans Düş (-1)</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: FINANCE, EXPENSES & NET PROFIT */}
+        {activeTab === 'finance' && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif font-bold text-base text-white">
+                  Kasa, Gider Yönetimi & Net Salon Kârı
+                </h3>
+                <p className="text-xs text-zinc-400 mt-1 max-w-2xl">
+                  Gerçekleşen seans cirosundan kira, malzeme, elektrik ve personel masraflarını düşerek salonunuzun gerçek <strong>Net Kârını</strong> anlık olarak raporlayın.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsAddExpenseOpen(!isAddExpenseOpen)}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Yeni Masraf / Gider Ekle</span>
+              </button>
+            </div>
+
+            {/* Financial Overview Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-5 rounded-2xl bg-zinc-950 border border-zinc-800">
+                <span className="text-[11px] text-zinc-400 uppercase tracking-wider block">Tamamlanan Ciro (Gelir)</span>
+                <div className="text-2xl font-black text-emerald-400 mt-1.5">
+                  {formatCurrency(completedRevenue)}
+                </div>
+                <span className="text-[11px] text-zinc-500 mt-1 block">Bekleyen Seans: {formatCurrency(totalExpectedRevenue - completedRevenue)}</span>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-zinc-950 border border-zinc-800">
+                <span className="text-[11px] text-zinc-400 uppercase tracking-wider block">Toplam Masraflar (Gider)</span>
+                <div className="text-2xl font-black text-red-400 mt-1.5">
+                  {formatCurrency(totalExpenses)}
+                </div>
+                <span className="text-[11px] text-zinc-500 mt-1 block">{expenses.length} adet kayıtlı harcama</span>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-gradient-to-tr from-zinc-950 via-zinc-900 to-zinc-950 border border-[#D4AF37]/50 shadow-xl">
+                <span className="text-[11px] font-bold text-[#D4AF37] uppercase tracking-wider block">NET SALON KÂRI</span>
+                <div className="text-2xl font-black text-[#D4AF37] mt-1.5">
+                  {formatCurrency(netProfit)}
+                </div>
+                <span className="text-[11px] text-zinc-400 mt-1 block">
+                  {netProfit >= 0 ? 'Kârlı Operasyon' : 'Gider Fazlası'}
+                </span>
+              </div>
+            </div>
+
+            {/* Add Expense Form Card */}
+            {isAddExpenseOpen && (
+              <form onSubmit={handleCreateExpense} className="p-6 rounded-2xl bg-zinc-950 border border-red-500/40 space-y-4">
+                <h4 className="text-xs font-bold text-red-400 uppercase tracking-wider">
+                  Yeni Salon Masrafı / Gider Kaydı
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] text-zinc-400 mb-1">Gider Başlığı *</label>
+                    <input
+                      type="text"
+                      required
+                      value={expTitle}
+                      onChange={(e) => setExpTitle(e.target.value)}
+                      placeholder="Örn: Otoklav Sterilizasyon Torbaları & Törpü Alımı"
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Kategori</label>
+                    <select
+                      value={expCategory}
+                      onChange={(e) => setExpCategory(e.target.value as ExpenseCategory)}
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-red-500"
+                    >
+                      <option value="Kira & Aidat">Kira & Aidat</option>
+                      <option value="Kozmetik & Sarf Malzeme">Kozmetik & Sarf Malzeme</option>
+                      <option value="Elektrik, Su, Isınma">Elektrik, Su, Isınma</option>
+                      <option value="Personel & Hakediş">Personel & Hakediş</option>
+                      <option value="Pazarlama & Reklam">Pazarlama & Reklam</option>
+                      <option value="Diğer Masraflar">Diğer Masraflar</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Tutar (TL) *</label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      step={50}
+                      value={expAmount}
+                      onChange={(e) => setExpAmount(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Tarih</label>
+                    <input
+                      type="date"
+                      value={expDate}
+                      onChange={(e) => setExpDate(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">Açıklama / Fatura No</label>
+                  <input
+                    type="text"
+                    value={expNote}
+                    onChange={(e) => setExpNote(e.target.value)}
+                    placeholder="Tedarikçi firma, fiş/fatura numarası..."
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-red-500"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddExpenseOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold cursor-pointer"
+                  >
+                    İptal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs shadow-md cursor-pointer"
+                  >
+                    Gideri Kaydet
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Expenses Table */}
+            <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-4">
+              <h4 className="text-sm font-bold text-white">Gider & Masraf Listesi</h4>
+              <div className="divide-y divide-zinc-900">
+                {expenses.map((exp) => (
+                  <div key={exp.id} className="py-3 flex items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-white">{exp.title}</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-900 text-zinc-400 border border-zinc-800">
+                          {exp.category}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-zinc-500 mt-0.5">
+                        {exp.date} {exp.note && `· ${exp.note}`}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-sm text-red-400">-{formatCurrency(exp.amount)}</span>
+                      <button
+                        onClick={() => deleteExpense(exp.id)}
+                        className="p-1.5 text-zinc-500 hover:text-red-400 transition cursor-pointer"
+                        title="Gideri Sil"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 6: SLOT & DAY MANAGEMENT */}
         {activeTab === 'slots' && (
           <div className="space-y-6">
             <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1399,7 +2083,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 4: SERVICES & PRICE MANAGEMENT */}
+        {/* TAB 7: SERVICES & PRICE MANAGEMENT */}
         {activeTab === 'services' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -1568,7 +2252,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 5: PRODUCTS & WHATSAPP SHOP MANAGEMENT */}
+        {/* TAB 8: PRODUCTS & WHATSAPP SHOP MANAGEMENT */}
         {activeTab === 'products' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -1776,39 +2460,6 @@ export default function AdminPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 6: FINANCE & CASHFLOW */}
-        {activeTab === 'finance' && (
-          <div className="space-y-6">
-            <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-4">
-              <h3 className="font-serif font-bold text-base text-white">Kasa & Gelir Özeti</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800">
-                  <span className="text-[11px] text-zinc-400">Gerçekleşen Ciro</span>
-                  <div className="text-xl font-black text-emerald-400 mt-1">
-                    {formatCurrency(completedRevenue)}
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800">
-                  <span className="text-[11px] text-zinc-400">Bekleyen Seans Tutarı</span>
-                  <div className="text-xl font-black text-[#D4AF37] mt-1">
-                    {formatCurrency(totalExpectedRevenue - completedRevenue)}
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800">
-                  <span className="text-[11px] text-zinc-400">Ortalama Randevu Tutarı</span>
-                  <div className="text-xl font-black text-blue-400 mt-1">
-                    {totalAppointments > 0
-                      ? formatCurrency(Math.round(totalExpectedRevenue / totalAppointments))
-                      : '0 ₺'}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -2049,6 +2700,94 @@ export default function AdminPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: CRM CLIENT PROFILE & NOTES EDITOR MODAL */}
+      {selectedClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-lg p-6 rounded-2xl bg-zinc-950 border border-[#D4AF37]/50 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-[#D4AF37]/10 text-[#D4AF37]">
+                  <User className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base text-white">{selectedClient.name}</h3>
+                  <p className="text-xs text-zinc-400">{selectedClient.phone}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedClient(null)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Loyalty Points Section */}
+            <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-zinc-400 block">Mevcut ParaPuan Cüzdanı</span>
+                <span className="text-xl font-black text-[#D4AF37]">{selectedClient.loyaltyPoints} ₺</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  step={10}
+                  value={pointAddInput}
+                  onChange={(e) => setPointAddInput(Number(e.target.value))}
+                  className="w-20 px-2 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white text-center"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    addLoyaltyPoints(selectedClient.phone, pointAddInput);
+                    setSelectedClient((prev) => prev ? { ...prev, loyaltyPoints: prev.loyaltyPoints + pointAddInput } : null);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-[#D4AF37] text-black text-xs font-bold cursor-pointer"
+                >
+                  + Ekle
+                </button>
+              </div>
+            </div>
+
+            {/* Special Notes & Formula Memory Editor */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider">
+                Uzman Notları, Alerjiler & İşlem / Formül Hafızası
+              </label>
+              <textarea
+                rows={4}
+                value={clientNoteEdit}
+                onChange={(e) => setClientNoteEdit(e.target.value)}
+                placeholder="Örn: Ciltte niasinamid hassasiyeti var, badem tırnak formunda 04 numaralı nude oje tercih ediyor..."
+                className="w-full p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D4AF37]"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setSelectedClient(null)}
+                className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold cursor-pointer"
+              >
+                Kapat
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  updateClientNotes(selectedClient.phone, clientNoteEdit);
+                  setSelectedClient((prev) => prev ? { ...prev, specialNotes: clientNoteEdit } : null);
+                }}
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md cursor-pointer"
+              >
+                Hafıza Notunu Kaydet
+              </button>
+            </div>
           </div>
         </div>
       )}

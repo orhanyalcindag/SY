@@ -6,12 +6,20 @@ import {
   CartItem,
   SalonProduct,
   SalonService,
+  ClientProfile,
+  ClientPackage,
+  SalonExpense,
+  BeforeAfterItem,
 } from '@/types';
 import {
   INITIAL_APPOINTMENTS,
   INITIAL_PRODUCTS,
   INITIAL_SERVICES,
   INITIAL_TIME_SLOTS,
+  INITIAL_CLIENTS,
+  INITIAL_PACKAGES,
+  INITIAL_EXPENSES,
+  INITIAL_BEFORE_AFTER,
   SALON_INFO,
 } from '@/data/initialData';
 
@@ -33,6 +41,7 @@ interface SalonContextType {
   addAppointment: (appointment: Omit<SalonAppointment, 'id' | 'createdAt'>) => void;
   updateAppointmentStatus: (id: string, status: SalonAppointment['status']) => void;
   deleteAppointment: (id: string) => void;
+  markAppointmentReminded: (id: string) => void;
 
   // Time Slots Management
   timeSlots: string[];
@@ -50,6 +59,26 @@ interface SalonContextType {
   isDateBlocked: (date: string) => boolean;
   isSlotBlocked: (date: string, time: string) => boolean;
 
+  // CRM & Client Dossier
+  clients: ClientProfile[];
+  updateClientNotes: (phone: string, notes: string) => void;
+  addLoyaltyPoints: (phone: string, points: number) => void;
+  getClientByPhone: (phone: string) => ClientProfile | undefined;
+
+  // Packages & Sessions
+  packages: ClientPackage[];
+  addPackage: (pkg: Omit<ClientPackage, 'id'>) => void;
+  consumeSession: (packageId: string) => void;
+  deletePackage: (packageId: string) => void;
+
+  // Expenses & Cashflow
+  expenses: SalonExpense[];
+  addExpense: (expense: Omit<SalonExpense, 'id'>) => void;
+  deleteExpense: (id: string) => void;
+
+  // Before & After Gallery
+  beforeAfterItems: BeforeAfterItem[];
+
   // Cart & Shopping
   cart: CartItem[];
   addToCart: (product: SalonProduct) => void;
@@ -64,6 +93,8 @@ interface SalonContextType {
   setIsCartOpen: (open: boolean) => void;
   isBookingOpen: boolean;
   setIsBookingOpen: (open: boolean) => void;
+  isConsultationOpen: boolean;
+  setIsConsultationOpen: (open: boolean) => void;
   selectedServiceForBooking: SalonService | null;
   setSelectedServiceForBooking: (service: SalonService | null) => void;
 
@@ -84,10 +115,15 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
   const [timeSlots, setTimeSlots] = useState<string[]>(INITIAL_TIME_SLOTS);
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<string[]>([]);
+  const [clients, setClients] = useState<ClientProfile[]>(INITIAL_CLIENTS);
+  const [packages, setPackages] = useState<ClientPackage[]>(INITIAL_PACKAGES);
+  const [expenses, setExpenses] = useState<SalonExpense[]>(INITIAL_EXPENSES);
+  const [beforeAfterItems] = useState<BeforeAfterItem[]>(INITIAL_BEFORE_AFTER);
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [isConsultationOpen, setIsConsultationOpen] = useState(false);
   const [selectedServiceForBooking, setSelectedServiceForBooking] = useState<SalonService | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -137,6 +173,15 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
 
       const savedBlockedSlots = localStorage.getItem('sy_blocked_slots');
       if (savedBlockedSlots) setBlockedSlots(JSON.parse(savedBlockedSlots));
+
+      const savedClients = localStorage.getItem('sy_clients');
+      if (savedClients) setClients(JSON.parse(savedClients));
+
+      const savedPackages = localStorage.getItem('sy_packages');
+      if (savedPackages) setPackages(JSON.parse(savedPackages));
+
+      const savedExpenses = localStorage.getItem('sy_expenses');
+      if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
     } catch {
       // Ignore parse errors
     }
@@ -164,6 +209,27 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const saveClients = (newClients: ClientProfile[]) => {
+    setClients(newClients);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sy_clients', JSON.stringify(newClients));
+    }
+  };
+
+  const savePackages = (newPackages: ClientPackage[]) => {
+    setPackages(newPackages);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sy_packages', JSON.stringify(newPackages));
+    }
+  };
+
+  const saveExpenses = (newExpenses: SalonExpense[]) => {
+    setExpenses(newExpenses);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sy_expenses', JSON.stringify(newExpenses));
+    }
+  };
+
   // Service CRUD
   const addService = (serviceData: Omit<SalonService, 'id'>) => {
     const newService: SalonService = {
@@ -172,13 +238,13 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     };
     const updated = [newService, ...services];
     saveServices(updated);
-    showNotification(`"${newService.name}" hizmet listesine eklendi.`);
+    showNotification(`"${newService.name}" hizmeti eklendi.`);
   };
 
   const updateService = (id: string, updatedFields: Partial<SalonService>) => {
     const updated = services.map((s) => (s.id === id ? { ...s, ...updatedFields } : s));
     saveServices(updated);
-    showNotification('İşlem bilgileri ve fiyat güncellendi.');
+    showNotification('İşlem fiyatı ve detayları güncellendi.');
   };
 
   const deleteService = (id: string) => {
@@ -221,19 +287,60 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     };
     const updated = [newApt, ...appointments];
     saveAppointments(updated);
+
+    // Auto-register client in CRM if new
+    const existingClient = clients.find((c) => c.phone.replace(/[^0-9]/g, '') === newApt.clientPhone.replace(/[^0-9]/g, ''));
+    if (!existingClient) {
+      const newClientProfile: ClientProfile = {
+        name: newApt.clientName,
+        phone: newApt.clientPhone,
+        specialNotes: newApt.notes || 'Web üzerinden ilk randevu.',
+        loyaltyPoints: 0,
+        createdAt: new Date().toISOString(),
+      };
+      saveClients([newClientProfile, ...clients]);
+    }
+
     showNotification(`Randevu kaydedildi: ${newApt.clientName} (${newApt.time})`);
   };
 
   const updateAppointmentStatus = (id: string, status: SalonAppointment['status']) => {
+    const targetApt = appointments.find((a) => a.id === id);
     const updated = appointments.map((a) => (a.id === id ? { ...a, status } : a));
     saveAppointments(updated);
-    showNotification(`Randevu durumu güncellendi: ${status}`);
+
+    // If status is TAMAMLANDI, automatically award 5% loyalty ParaPuan to client!
+    if (status === 'TAMAMLANDI' && targetApt) {
+      const earnedPoints = Math.round(targetApt.price * 0.05);
+      const cleanPhone = targetApt.clientPhone.replace(/[^0-9]/g, '');
+      const clientExists = clients.find((c) => c.phone.replace(/[^0-9]/g, '') === cleanPhone);
+
+      if (clientExists) {
+        const updatedClients = clients.map((c) =>
+          c.phone.replace(/[^0-9]/g, '') === cleanPhone
+            ? { ...c, loyaltyPoints: c.loyaltyPoints + earnedPoints }
+            : c
+        );
+        saveClients(updatedClients);
+        showNotification(`Randevu tamamlandı! Danışana ${earnedPoints} ₺ ParaPuan tanımlandı.`);
+      } else {
+        showNotification(`Randevu tamamlandı.`);
+      }
+    } else {
+      showNotification(`Randevu durumu güncellendi: ${status}`);
+    }
   };
 
   const deleteAppointment = (id: string) => {
     const updated = appointments.filter((a) => a.id !== id);
     saveAppointments(updated);
     showNotification('Randevu kaydı silindi.');
+  };
+
+  const markAppointmentReminded = (id: string) => {
+    const updated = appointments.map((a) => (a.id === id ? { ...a, reminded: true } : a));
+    saveAppointments(updated);
+    showNotification('WhatsApp hatırlatma gönderimi kaydedildi.');
   };
 
   // Time Slots Management
@@ -340,6 +447,96 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     return Array.from(new Set([...booked, ...blocked]));
   };
 
+  // CRM: Update Client Notes & Memory
+  const updateClientNotes = (phone: string, notes: string) => {
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const updated = clients.map((c) =>
+      c.phone.replace(/[^0-9]/g, '') === cleanPhone ? { ...c, specialNotes: notes } : c
+    );
+    saveClients(updated);
+    showNotification('Danışan formül ve işlem hafızası güncellendi.');
+  };
+
+  const addLoyaltyPoints = (phone: string, points: number) => {
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const updated = clients.map((c) =>
+      c.phone.replace(/[^0-9]/g, '') === cleanPhone
+        ? { ...c, loyaltyPoints: Math.max(0, c.loyaltyPoints + points) }
+        : c
+    );
+    saveClients(updated);
+    showNotification(`ParaPuan bakiyesi güncellendi.`);
+  };
+
+  const getClientByPhone = (phone: string) => {
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    return clients.find((c) => c.phone.replace(/[^0-9]/g, '') === cleanPhone);
+  };
+
+  // Package & Session Tracking
+  const addPackage = (pkgData: Omit<ClientPackage, 'id'>) => {
+    const newPkg: ClientPackage = {
+      ...pkgData,
+      id: `pkg-${Date.now()}`,
+    };
+    const updated = [newPkg, ...packages];
+    savePackages(updated);
+    showNotification(`"${newPkg.packageName}" paketi ${newPkg.clientName} için tanımlandı.`);
+  };
+
+  const consumeSession = (packageId: string) => {
+    const target = packages.find((p) => p.id === packageId);
+    if (!target) return;
+    if (target.completedSessions >= target.totalSessions) {
+      showNotification('Bu paketin tüm seansları zaten tamamlanmıştır.');
+      return;
+    }
+
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const today = `${yyyy}-${mm}-${dd}`;
+
+    const updated = packages.map((p) => {
+      if (p.id === packageId) {
+        return {
+          ...p,
+          completedSessions: p.completedSessions + 1,
+          lastSessionDate: today,
+        };
+      }
+      return p;
+    });
+
+    savePackages(updated);
+    const remaining = target.totalSessions - (target.completedSessions + 1);
+    showNotification(`1 seans düşüldü! Kalan seans: ${remaining}`);
+  };
+
+  const deletePackage = (packageId: string) => {
+    const updated = packages.filter((p) => p.id !== packageId);
+    savePackages(updated);
+    showNotification('Paket kaydı silindi.');
+  };
+
+  // Expenses Management
+  const addExpense = (expenseData: Omit<SalonExpense, 'id'>) => {
+    const newExp: SalonExpense = {
+      ...expenseData,
+      id: `exp-${Date.now()}`,
+    };
+    const updated = [newExp, ...expenses];
+    saveExpenses(updated);
+    showNotification(`Masraf kaydedildi: ${newExp.title}`);
+  };
+
+  const deleteExpense = (id: string) => {
+    const updated = expenses.filter((e) => e.id !== id);
+    saveExpenses(updated);
+    showNotification('Gider kaydı silindi.');
+  };
+
   // Cart Management
   const addToCart = (product: SalonProduct) => {
     setCart((prev) => {
@@ -374,49 +571,37 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => setCart([]);
 
-  const cartTotal = cart.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  );
-
+  const cartTotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   // WhatsApp Checkout Action
-  const sendWhatsAppOrder = (clientInfo: {
-    name: string;
-    phone: string;
-    address?: string;
-    note?: string;
-  }) => {
+  const sendWhatsAppOrder = (clientInfo: { name: string; phone: string; address?: string; note?: string }) => {
     if (cart.length === 0) return;
 
     let message = `*✨ SİMAY YORULMAZ HEALTH & BEAUTY - YENİ SİPARİŞ ✨*\n\n`;
-    message += `*Müşteri Adı:* ${clientInfo.name}\n`;
+    message += `*Müşteri:* ${clientInfo.name}\n`;
     message += `*Telefon:* ${clientInfo.phone}\n`;
     if (clientInfo.address) {
       message += `*Teslimat Adresi:* ${clientInfo.address}\n`;
     }
     if (clientInfo.note) {
-      message += `*Müşteri Notu:* ${clientInfo.note}\n`;
+      message += `*Sipariş Notu:* ${clientInfo.note}\n`;
     }
-    message += `\n*📦 SİPARİŞ EDİLEN ÜRÜNLER:*\n`;
+    message += `\n*Sepet İçeriği:*\n`;
 
     cart.forEach((item, index) => {
-      const itemSubtotal = item.product.price * item.quantity;
-      message += `${index + 1}. ${item.product.name}\n`;
-      message += `   👉 Adet: ${item.quantity} x ${item.product.price.toLocaleString('tr-TR')} ₺ = *${itemSubtotal.toLocaleString('tr-TR')} ₺*\n`;
+      message += `${index + 1}. ${item.product.name} x ${item.quantity} adet = ${item.product.price * item.quantity} ₺\n`;
     });
 
-    message += `\n*💰 GENEL TOPLAM TUTAR:* *${cartTotal.toLocaleString('tr-TR')} ₺*\n\n`;
-    message += `_Merhaba Simay Hanım, web sitenizden sepetime eklediğim ürünleri sipariş etmek istiyorum. Stok ve kargo/teslimat hakkında bilgi alabilir miyim? Teşekkürler!_`;
+    message += `\n*TOPLAM TUTAR:* ${cartTotal} ₺\n`;
+    message += `\n_Merhaba Simay Hanım, web sitenizden yukarıdaki ürünlerin siparişini oluşturmak istiyorum. Stok ve kargo/teslimat hakkında bilgi alabilir miyim?_`;
 
     const encoded = encodeURIComponent(message);
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${SALON_INFO.whatsappRaw}&text=${encoded}`;
-
     window.open(whatsappUrl, '_blank');
     clearCart();
     setIsCartOpen(false);
-    showNotification('Siparişiniz WhatsApp’a aktarıldı! Teşekkür ederiz.');
+    showNotification('Siparişiniz WhatsApp mesajı olarak yönlendirildi!');
   };
 
   return (
@@ -434,6 +619,7 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
         addAppointment,
         updateAppointmentStatus,
         deleteAppointment,
+        markAppointmentReminded,
         timeSlots,
         addTimeSlot,
         removeTimeSlot,
@@ -446,6 +632,18 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
         toggleBlockSlot,
         isDateBlocked,
         isSlotBlocked,
+        clients,
+        updateClientNotes,
+        addLoyaltyPoints,
+        getClientByPhone,
+        packages,
+        addPackage,
+        consumeSession,
+        deletePackage,
+        expenses,
+        addExpense,
+        deleteExpense,
+        beforeAfterItems,
         cart,
         addToCart,
         removeFromCart,
@@ -457,6 +655,8 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
         setIsCartOpen,
         isBookingOpen,
         setIsBookingOpen,
+        isConsultationOpen,
+        setIsConsultationOpen,
         selectedServiceForBooking,
         setSelectedServiceForBooking,
         sendWhatsAppOrder,

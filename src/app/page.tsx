@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useSalon } from '@/context/SalonContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import BeforeAfterSlider from '@/components/BeforeAfterSlider';
+import SkinConsultationModal from '@/components/SkinConsultationModal';
 import { SALON_INFO, SALON_GALLERY_IMAGES, GOOGLE_REVIEWS_DATA } from '@/data/initialData';
 import { SalonService } from '@/types';
 import {
@@ -36,6 +38,7 @@ export default function HomePage() {
     addToCart,
     setIsBookingOpen,
     setSelectedServiceForBooking,
+    setIsConsultationOpen,
     notification,
   } = useSalon();
 
@@ -310,6 +313,35 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Interactive Skin Consultation CTA Banner */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 mb-16">
+        <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 border border-[#D4AF37]/40 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-[#D4AF37]/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="space-y-2 text-center md:text-left relative z-10">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/30 text-[#D4AF37] text-xs font-bold">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>30 Saniyelik Akıllı Güzellik Testi</span>
+            </div>
+            <h3 className="font-serif text-xl sm:text-3xl font-extrabold text-white">
+              Hangi Bakımın Size Uygun Olduğunu Bilmiyor Musunuz?
+            </h3>
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-xl">
+              Cilt tipinizi ve hedefinizi seçin, Simay Yorulmaz uzmanlığında hazırlanan size özel salon protokolünü ve ev devam bakımını saniyeler içinde keşfedin.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setIsConsultationOpen(true)}
+            className="px-7 py-4 rounded-2xl bg-gradient-to-r from-[#997929] via-[#D4AF37] to-[#F3E5AB] hover:brightness-110 text-black font-extrabold text-xs sm:text-sm shadow-xl shadow-[#D4AF37]/20 transition transform active:scale-95 shrink-0 flex items-center gap-2 cursor-pointer relative z-10"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Testi Başlat & Önerini Gör</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </section>
+
       {/* DEDICATED PRODUCTS TEASER SECTION (Redirects to /urunler) */}
       <section className="py-20 bg-zinc-950/70 border-y border-white/5 relative overflow-hidden">
         {/* Glow */}
@@ -417,6 +449,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Interactive Before & After Showcase */}
+      <BeforeAfterSlider />
 
       {/* About & Studio Atmosphere (#hakkimizda) */}
       <section id="hakkimizda" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -792,6 +827,9 @@ export default function HomePage() {
 
       {/* Footer */}
       <Footer />
+
+      {/* Interactive Skin Consultation Modal */}
+      <SkinConsultationModal />
     </div>
   );
 }

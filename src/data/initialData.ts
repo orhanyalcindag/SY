@@ -1,4 +1,12 @@
-import { SalonAppointment, SalonProduct, SalonService } from '@/types';
+import {
+  SalonAppointment,
+  SalonProduct,
+  SalonService,
+  ClientProfile,
+  ClientPackage,
+  SalonExpense,
+  BeforeAfterItem,
+} from '@/types';
 
 export const SALON_INFO = {
   name: 'Simay Yorulmaz Health & Beauty',
@@ -433,3 +441,158 @@ export const GOOGLE_REVIEWS_DATA: {
     },
   ],
 };
+
+export const INITIAL_CLIENTS: ClientProfile[] = [
+  {
+    phone: '+90 532 111 22 33',
+    name: 'Merve Kaya',
+    specialNotes: 'Hassas cilt yapısı. Aloe vera & hyaluronik jel yatıştırma önerildi. Badem tırnak formunu seviyor.',
+    loyaltyPoints: 140,
+    createdAt: '2026-08-10',
+  },
+  {
+    phone: '+90 544 222 33 44',
+    name: 'Zeynep Demir',
+    specialNotes: 'Buz lazer 4. seansı tamamlandı, dökülme oranı çok yüksek. Cilt asit toleransı iyi.',
+    loyaltyPoints: 320,
+    createdAt: '2026-07-22',
+  },
+  {
+    phone: '+90 555 333 44 55',
+    name: 'Elif Arslan',
+    specialNotes: 'Oje tercihi: Nude Pink veya Fransız manikürü. Kaş laminasyonunda 45 gün periyodu takip ediliyor.',
+    loyaltyPoints: 95,
+    createdAt: '2026-09-05',
+  },
+  {
+    phone: '+90 533 444 55 66',
+    name: 'Büşra Yılmaz',
+    specialNotes: 'Gelin paketi müşterisi. Altın yapraklı el çizimi nail art ve leke açıcı C vitamini protokolü uygulandı.',
+    loyaltyPoints: 250,
+    createdAt: '2026-09-18',
+  },
+];
+
+export const INITIAL_PACKAGES: ClientPackage[] = [
+  {
+    id: 'pkg-1',
+    clientName: 'Zeynep Demir',
+    clientPhone: '+90 544 222 33 44',
+    packageName: 'Tüm Vücut Buz Başlıklı Hibrit Lazer (8 Seans)',
+    category: 'Lazer Epilasyon',
+    totalSessions: 8,
+    completedSessions: 4,
+    totalPrice: 9500,
+    paidAmount: 9500,
+    startDate: '2026-09-15',
+    lastSessionDate: '2026-10-20',
+    notes: 'Kol ve bacak bölgelerinde %80 üzerinde dökülme sağlandı.',
+  },
+  {
+    id: 'pkg-2',
+    clientName: 'Merve Kaya',
+    clientPhone: '+90 532 111 22 33',
+    packageName: 'Hydrafacial + Somon DNA Kombin Cilt Protokolü (4 Seans)',
+    category: 'Cilt Bakımı',
+    totalSessions: 4,
+    completedSessions: 2,
+    totalPrice: 5600,
+    paidAmount: 5600,
+    startDate: '2026-10-01',
+    lastSessionDate: '2026-10-25',
+    notes: '2. seans sonrası gözenek sıkılaşması belirginleşti.',
+  },
+  {
+    id: 'pkg-3',
+    clientName: 'Zeynep Karahan',
+    clientPhone: '+90 536 777 88 99',
+    packageName: 'G5 Bölgesel İncelme & Selülit Masajı (10 Seans)',
+    category: 'Bölgesel İncelme',
+    totalSessions: 10,
+    completedSessions: 6,
+    totalPrice: 7000,
+    paidAmount: 5000,
+    startDate: '2026-09-20',
+    lastSessionDate: '2026-10-28',
+    notes: 'Bel ve basen bölgesinde 4 cm incelme sağlandı. Kalan bakiye: 2.000 ₺.',
+  },
+];
+
+export const INITIAL_EXPENSES: SalonExpense[] = [
+  {
+    id: 'exp-1',
+    title: 'Salon Kirası & İğneada Caddesi Dükkan Bedeli',
+    category: 'Kira & Aidat',
+    amount: 15000,
+    date: '2026-11-01',
+    note: 'Kasım 2026 kira bedeli ödendi.',
+  },
+  {
+    id: 'exp-2',
+    title: 'Hydrafacial Solüsyon Seti & Somon DNA Ampulleri',
+    category: 'Kozmetik & Sarf Malzeme',
+    amount: 6400,
+    date: '2026-11-02',
+    note: 'Medikal cilt bakım sıvıları tedarik edildi.',
+  },
+  {
+    id: 'exp-3',
+    title: 'Elektrik, Su & Klima Isınma Faturası',
+    category: 'Elektrik, Su, Isınma',
+    amount: 2850,
+    date: '2026-11-03',
+    note: 'Ekim ayı salon tüketimi.',
+  },
+  {
+    id: 'exp-4',
+    title: 'Instagram & Trakya Bölgesi Sponsorlu Reklam',
+    category: 'Pazarlama & Reklam',
+    amount: 1800,
+    date: '2026-11-03',
+    note: 'Kırklareli & Lüleburgaz hedefli dijital kampanya.',
+  },
+];
+
+export const INITIAL_BEFORE_AFTER: BeforeAfterItem[] = [
+  {
+    id: 'ba-1',
+    title: 'Medikal Hydrafacial & Gözenek Arındırma',
+    category: 'Cilt Bakımı',
+    description: 'Tek seansta vakumla temizlenen siyah noktalar, küçülen gözenekler ve hyaluronik asit infüzyonuyla gelen doğal cam cilt ışıltısı.',
+    beforeImage: '/images/hydrafacial.jpg',
+    afterImage: '/images/somon-dna.jpg',
+    sessionsCount: 'Tek Seans Sonucu',
+    highlightTag: 'Işıltılı Cam Cilt',
+  },
+  {
+    id: 'ba-2',
+    title: 'Kişiye Özel El Çizimi Nail Art & Jel Tırnak',
+    category: 'Protez Tırnak & Manikür',
+    description: 'Yıpranmış ve kırılgan tırnak yapısının medikal manikürle onarılıp dayanıklı jel tırnak ve altın detaylı el çizimiyle tasarlanması.',
+    beforeImage: '/images/manicure.jpg',
+    afterImage: '/images/nail-art.jpg',
+    sessionsCount: '4 Hafta Kalıcı',
+    highlightTag: 'Kırılmayan Formül',
+  },
+  {
+    id: 'ba-3',
+    title: 'Buz Başlıklı Hibrit Lazer Epilasyon',
+    category: 'Lazer Epilasyon',
+    description: '-4°C soğutmalı acısız başlık ile 4 seansta %85 oranında pürüzsüzlük ve batık sorunlarının tamamen ortadan kalkması.',
+    beforeImage: '/images/laser.jpg',
+    afterImage: '/images/hero.jpg',
+    sessionsCount: '4. Seans Ara Kontrol',
+    highlightTag: '%85 Kalıcı Azalma',
+  },
+  {
+    id: 'ba-4',
+    title: 'Volume İpek Kirpik & Kaş Laminasyonu',
+    category: 'İpek Kirpik & Kaş',
+    description: 'Doğal kirpiklere zarar vermeden uygulanan ipeksi hafiflikte hacimli kirpikler ve yukarı taranmış simetrik kaş formasyonu.',
+    beforeImage: '/images/laminasyon.jpg',
+    afterImage: '/images/lashes.jpg',
+    sessionsCount: '6-8 Hafta Kalıcı',
+    highlightTag: 'Doğal & Etkileyici',
+  },
+];
+
