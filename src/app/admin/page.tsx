@@ -760,6 +760,14 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* Mobile swipe helper tip */}
+            <div className="flex sm:hidden items-center justify-between px-2 text-[11px] text-zinc-400">
+              <span className="flex items-center gap-1 text-[#D4AF37]">
+                <span>👉 Tabloyu parmağınızla sağa/sola kaydırabilirsiniz</span>
+              </span>
+              <span className="text-zinc-500">7 Gün</span>
+            </div>
+
             {/* Equal-Sized Weekly Calendar Matrix Table */}
             <div className="rounded-2xl bg-zinc-950 border border-zinc-800 shadow-2xl">
               <div className="overflow-x-auto">

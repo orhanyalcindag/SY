@@ -11,6 +11,8 @@ import {
   Phone,
   Menu,
   X,
+  Smartphone,
+  Download,
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -91,6 +93,18 @@ export default function Navbar() {
           <Link href="/#iletisim" className="text-zinc-300 hover:text-[#D4AF37] transition">
             İletişim & Konum
           </Link>
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('open-pwa-install'));
+              }
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 border border-[#D4AF37]/30 text-[#D4AF37] hover:text-white transition cursor-pointer text-[11px] font-semibold"
+            title="Mobil Uygulamayı Yükle"
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>Uygulama</span>
+          </button>
         </nav>
 
         {/* Action Controls: Cart, Booking, Mobile Menu Toggle */}
@@ -175,6 +189,22 @@ export default function Navbar() {
           >
             İletişim & Konum
           </Link>
+
+          {/* Mobile App Install Button */}
+          <div className="pt-2 border-t border-zinc-800">
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('open-pwa-install'));
+                }
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#D4AF37]/20 via-[#D4AF37]/10 to-transparent border border-[#D4AF37]/40 text-[#D4AF37] hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+            >
+              <Smartphone className="w-4 h-4 text-[#D4AF37]" />
+              <span>Mobil Uygulamayı Telefona Yükle</span>
+            </button>
+          </div>
         </div>
       )}
     </header>

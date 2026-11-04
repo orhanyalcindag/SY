@@ -69,7 +69,7 @@ export default function ProductsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0A0A0C] text-zinc-100 selection:bg-[#D4AF37] selection:text-black font-sans">
+    <div className="min-h-screen bg-[#0A0A0C] text-zinc-100 selection:bg-[#D4AF37] selection:text-black font-sans pb-16 sm:pb-0">
       {/* Toast Notification */}
       {notification && (
         <div className="fixed top-20 right-5 z-50 p-3.5 rounded-xl bg-zinc-900/95 border border-[#D4AF37] text-white text-xs font-semibold shadow-2xl backdrop-blur-md animate-in slide-in-from-right flex items-center gap-2">
