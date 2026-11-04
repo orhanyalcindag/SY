@@ -19,7 +19,6 @@ export default function PWAInstallPrompt() {
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showFloatingBanner, setShowFloatingBanner] = useState(false);
 
   useEffect(() => {
     // 1. Register Service Worker in production & development
@@ -46,25 +45,15 @@ export default function PWAInstallPrompt() {
       const userAgent = window.navigator.userAgent.toLowerCase();
       const isApple = /iphone|ipad|ipod/.test(userAgent);
       setIsIOS(isApple);
-
-      // Show floating install banner after 3 seconds if not installed and not dismissed in this session
-      const dismissed = sessionStorage.getItem('sy_pwa_dismissed');
-      if (!isStandalone && !dismissed) {
-        const timer = setTimeout(() => {
-          setShowFloatingBanner(true);
-        }, 3500);
-        return () => clearTimeout(timer);
-      }
     }
 
-    // 4. Capture Android/Chrome beforeinstallprompt event
+    // 4. Capture Android/Chrome beforeinstallprompt event silently (no popup)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setShowFloatingBanner(true);
     };
 
-    // 5. Listen for custom open event (from MobileBottomNav or Navbar)
+    // 5. Listen for explicit user click (from MobileBottomNav or Navbar)
     const handleCustomOpen = () => {
       setIsModalOpen(true);
     };
@@ -75,7 +64,6 @@ export default function PWAInstallPrompt() {
     // App installed event
     window.addEventListener('appinstalled', () => {
       setIsInstalled(true);
-      setShowFloatingBanner(false);
       setIsModalOpen(false);
       setDeferredPrompt(null);
     });
@@ -92,78 +80,20 @@ export default function PWAInstallPrompt() {
       const choiceResult = await deferredPrompt.userChoice;
       if (choiceResult.outcome === 'accepted') {
         setIsInstalled(true);
-        setShowFloatingBanner(false);
         setIsModalOpen(false);
       }
       setDeferredPrompt(null);
-    } else {
-      // If no native prompt available (e.g. iOS or already prompted), show the guide modal
-      setIsModalOpen(true);
     }
   };
 
-  const dismissBanner = () => {
-    setShowFloatingBanner(false);
-    sessionStorage.setItem('sy_pwa_dismissed', 'true');
-  };
-
-  if (isInstalled) {
+  if (isInstalled || !isModalOpen) {
     return null;
   }
 
   return (
     <>
-      {/* Floating Bottom/Top Banner for Quick Install */}
-      {showFloatingBanner && (
-        <div className="fixed bottom-20 sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-40 animate-in slide-in-from-bottom-5 duration-300">
-          <div className="p-3.5 rounded-2xl bg-[#0F0F12]/95 backdrop-blur-md border border-[#D4AF37]/40 shadow-2xl shadow-black/80 flex items-center justify-between gap-3 text-white">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-[#D4AF37]/30 bg-black">
-                <Image
-                  src="/icons/icon-192.png"
-                  alt="Simay Yorulmaz App Icon"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <h4 className="text-xs font-bold text-zinc-100 truncate">
-                    Simay Yorulmaz
-                  </h4>
-                  <span className="px-1.5 py-0.2 rounded bg-[#D4AF37]/20 text-[#D4AF37] text-[9px] font-bold">
-                    Uygulama
-                  </span>
-                </div>
-                <p className="text-[11px] text-zinc-400 truncate">
-                  Telefonunuza yükleyin, tek tıkla ulaşın
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                onClick={handleInstallClick}
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA8222] text-black font-extrabold text-[11px] shadow-md shadow-[#D4AF37]/20 flex items-center gap-1 transition active:scale-95 cursor-pointer"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Yükle</span>
-              </button>
-              <button
-                onClick={dismissBanner}
-                className="p-1 rounded-lg text-zinc-500 hover:text-white transition"
-                aria-label="Kapat"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Detailed Install Guide Modal (Android & iOS instructions) */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* On-Demand Install Guide Modal (Only shows when user taps 'Yükle') */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
           <div
             onClick={() => setIsModalOpen(false)}
@@ -316,7 +246,6 @@ export default function PWAInstallPrompt() {
             </div>
           </div>
         </div>
-      )}
     </>
   );
 }
