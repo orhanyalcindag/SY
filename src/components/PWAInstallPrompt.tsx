@@ -99,45 +99,46 @@ export default function PWAInstallPrompt() {
   return (
     <>
       {/* On-Demand Install Guide Modal (Only shows when user taps 'Yükle') */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <div
-            onClick={() => setIsModalOpen(false)}
-            className="fixed inset-0 bg-black/85 backdrop-blur-sm transition-opacity"
-          />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        {/* Backdrop */}
+        <div
+          onClick={() => setIsModalOpen(false)}
+          className="fixed inset-0 bg-black/85 backdrop-blur-sm transition-opacity"
+        />
 
-          {/* Modal Container */}
-          <div className="relative z-10 w-full max-w-md bg-[#0F0F12] border border-[#D4AF37]/40 rounded-3xl text-white shadow-2xl overflow-hidden p-6 animate-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="relative w-12 h-12 rounded-2xl overflow-hidden border border-[#D4AF37]/40 shadow-lg bg-black">
-                  <Image
-                    src="/icons/icon-192.png"
-                    alt="Simay Yorulmaz"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div>
-                  <h3 className="font-serif font-extrabold text-base text-zinc-100">
-                    Simay Yorulmaz Health & Beauty
-                  </h3>
-                  <p className="text-[11px] text-[#D4AF37] font-semibold">
-                    Mobil Uygulamayı Telefonunuza Yükleyin
-                  </p>
-                </div>
+        {/* Modal Container with strict max-height and flex-col scroll */}
+        <div className="relative z-10 w-full max-w-md bg-[#0F0F12] border border-[#D4AF37]/40 rounded-2xl sm:rounded-3xl text-white shadow-2xl flex flex-col max-h-[86vh] overflow-hidden animate-in zoom-in-95 duration-200 my-auto">
+          {/* Header (Sticky / Shrink-0) */}
+          <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#0F0F12]">
+            <div className="flex items-center gap-3">
+              <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-[#D4AF37]/40 shadow-lg bg-black shrink-0">
+                <Image
+                  src="/icons/icon-192.png"
+                  alt="Simay Yorulmaz"
+                  fill
+                  className="object-cover"
+                />
               </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div>
+                <h3 className="font-serif font-extrabold text-sm sm:text-base text-zinc-100">
+                  Simay Yorulmaz Health & Beauty
+                </h3>
+                <p className="text-[10px] sm:text-[11px] text-[#D4AF37] font-semibold">
+                  Mobil Uygulama / Ana Ekrana Ekle
+                </p>
+              </div>
             </div>
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+              aria-label="Kapat"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-            {/* Content */}
-            <div className="py-5 space-y-4">
+          {/* Scrollable Body (Scrolls smoothly with touch or mouse) */}
+          <div className="p-5 space-y-4 overflow-y-auto flex-1 overscroll-contain">
               <p className="text-xs text-zinc-300 leading-relaxed">
                 Simay Yorulmaz web uygulamasını telefonunuza yükleyerek dilediğiniz an tek tıkla online randevu alabilir, bakım seanslarınızı ve dükkandan teslim siparişlerinizi takip edebilirsiniz.
               </p>
@@ -304,23 +305,23 @@ export default function PWAInstallPrompt() {
                   </ol>
                 </div>
               )}
-            </div>
+          </div>
 
-            {/* Footer */}
-            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-zinc-400">
-              <span className="flex items-center gap-1 text-[#D4AF37]">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Simay Yorulmaz · Demirköy</span>
-              </span>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="hover:text-white transition cursor-pointer"
-              >
-                Anladım, Kapat
-              </button>
-            </div>
+          {/* Footer (Sticky / Shrink-0) */}
+          <div className="px-5 py-3.5 border-t border-white/10 flex items-center justify-between text-xs text-zinc-400 shrink-0 bg-[#0F0F12]">
+            <span className="flex items-center gap-1.5 text-[#D4AF37] text-[11px] font-semibold">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Simay Yorulmaz · Demirköy</span>
+            </span>
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white text-xs font-bold transition cursor-pointer"
+            >
+              Kapat
+            </button>
           </div>
         </div>
+      </div>
     </>
   );
 }
