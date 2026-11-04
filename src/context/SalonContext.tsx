@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
   SalonAppointment,
   CartItem,
@@ -20,6 +20,34 @@ import {
   INITIAL_EXPENSES,
   SALON_INFO,
 } from '@/data/initialData';
+import {
+  getActiveFirebaseConfig,
+  getFirebaseDb,
+  FirebaseConfig,
+} from '@/lib/firebase';
+import {
+  seedCloudDatabaseIfEmpty,
+  subscribeToAppointments,
+  subscribeToServices,
+  subscribeToProducts,
+  subscribeToClients,
+  subscribeToPackages,
+  subscribeToExpenses,
+  subscribeToSettings,
+  cloudSaveAppointment,
+  cloudUpdateAppointmentStatus,
+  cloudDeleteAppointment,
+  cloudSaveService,
+  cloudDeleteService,
+  cloudSaveProduct,
+  cloudDeleteProduct,
+  cloudSaveClient,
+  cloudSavePackage,
+  cloudDeletePackage,
+  cloudSaveExpense,
+  cloudDeleteExpense,
+  cloudSaveSettings,
+} from '@/lib/cloudDb';
 
 interface SalonContextType {
   // Services
@@ -105,6 +133,11 @@ interface SalonContextType {
   // Feedback Notification
   notification: string | null;
   showNotification: (msg: string) => void;
+
+  // Cloud Database (Firebase)
+  isCloudConnected: boolean;
+  saveFirebaseConfig: (config: FirebaseConfig) => void;
+  clearFirebaseConfig: () => void;
 }
 
 const SalonContext = createContext<SalonContextType | undefined>(undefined);
@@ -120,6 +153,7 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
   const [packages, setPackages] = useState<ClientPackage[]>(INITIAL_PACKAGES);
   const [expenses, setExpenses] = useState<SalonExpense[]>(INITIAL_EXPENSES);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCloudConnected, setIsCloudConnected] = useState(false);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -187,6 +221,142 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Realtime Cloud Firestore synchronization across devices
+  const isCloudSeededRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const config = getActiveFirebaseConfig();
+    if (!config) {
+      setIsCloudConnected(false);
+      return;
+    }
+
+    try {
+      const db = getFirebaseDb();
+      if (!db) {
+        setIsCloudConnected(false);
+        return;
+      }
+
+      setIsCloudConnected(true);
+
+      // Seed if cloud is completely fresh
+      if (!isCloudSeededRef.current) {
+        isCloudSeededRef.current = true;
+        seedCloudDatabaseIfEmpty({
+          services,
+          products,
+          appointments,
+          clients,
+          packages,
+          expenses,
+          timeSlots,
+          blockedDates,
+          blockedSlots,
+        });
+      }
+
+      // Realtime Appointments listener
+      const unsubApts = subscribeToAppointments((cloudApts) => {
+        if (cloudApts) {
+          setAppointments(cloudApts);
+          localStorage.setItem('sy_appointments', JSON.stringify(cloudApts));
+        }
+      });
+
+      // Realtime Services listener
+      const unsubSrv = subscribeToServices((cloudSrv) => {
+        if (cloudSrv && cloudSrv.length > 0) {
+          setServices(cloudSrv);
+          localStorage.setItem('sy_services', JSON.stringify(cloudSrv));
+        }
+      });
+
+      // Realtime Products listener
+      const unsubPrd = subscribeToProducts((cloudPrd) => {
+        if (cloudPrd && cloudPrd.length > 0) {
+          setProducts(cloudPrd);
+          localStorage.setItem('sy_products', JSON.stringify(cloudPrd));
+        }
+      });
+
+      // Realtime Clients listener
+      const unsubClients = subscribeToClients((cloudClients) => {
+        if (cloudClients && cloudClients.length > 0) {
+          setClients(cloudClients);
+          localStorage.setItem('sy_clients', JSON.stringify(cloudClients));
+        }
+      });
+
+      // Realtime Packages listener
+      const unsubPkg = subscribeToPackages((cloudPkg) => {
+        if (cloudPkg && cloudPkg.length > 0) {
+          setPackages(cloudPkg);
+          localStorage.setItem('sy_packages', JSON.stringify(cloudPkg));
+        }
+      });
+
+      // Realtime Expenses listener
+      const unsubExp = subscribeToExpenses((cloudExp) => {
+        if (cloudExp && cloudExp.length > 0) {
+          setExpenses(cloudExp);
+          localStorage.setItem('sy_expenses', JSON.stringify(cloudExp));
+        }
+      });
+
+      // Realtime Settings (Slots, Blocked Dates & Times) listener
+      const unsubSettings = subscribeToSettings((settings) => {
+        if (settings.timeSlots && settings.timeSlots.length > 0) {
+          setTimeSlots(settings.timeSlots);
+          localStorage.setItem('sy_time_slots', JSON.stringify(settings.timeSlots));
+        }
+        if (settings.blockedDates) {
+          setBlockedDates(settings.blockedDates);
+          localStorage.setItem('sy_blocked_dates', JSON.stringify(settings.blockedDates));
+        }
+        if (settings.blockedSlots) {
+          setBlockedSlots(settings.blockedSlots);
+          localStorage.setItem('sy_blocked_slots', JSON.stringify(settings.blockedSlots));
+        }
+      });
+
+      return () => {
+        unsubApts();
+        unsubSrv();
+        unsubPrd();
+        unsubClients();
+        unsubPkg();
+        unsubExp();
+        unsubSettings();
+      };
+    } catch (err) {
+      console.error('Firebase realtime setup error:', err);
+      setIsCloudConnected(false);
+    }
+  }, []);
+
+  const saveFirebaseConfig = (config: FirebaseConfig) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sy_firebase_config', JSON.stringify(config));
+      showNotification('Firebase bağlantı bilgileri kaydedildi! Canlı senkronizasyon başlatılıyor...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 700);
+    }
+  };
+
+  const clearFirebaseConfig = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('sy_firebase_config');
+      showNotification('Firebase bağlantısı kesildi. Yerel moda geçildi.');
+      setTimeout(() => {
+        window.location.reload();
+      }, 700);
+    }
+  };
+
   // Sync helpers
   const saveServices = (newServices: SalonService[]) => {
     setServices(newServices);
@@ -238,12 +408,17 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     };
     const updated = [newService, ...services];
     saveServices(updated);
+    cloudSaveService(newService).catch(console.error);
     showNotification(`"${newService.name}" hizmeti eklendi.`);
   };
 
   const updateService = (id: string, updatedFields: Partial<SalonService>) => {
     const updated = services.map((s) => (s.id === id ? { ...s, ...updatedFields } : s));
     saveServices(updated);
+    const target = updated.find((s) => s.id === id);
+    if (target) {
+      cloudSaveService(target).catch(console.error);
+    }
     showNotification('İşlem fiyatı ve detayları güncellendi.');
   };
 
@@ -251,6 +426,7 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     const target = services.find((s) => s.id === id);
     const updated = services.filter((s) => s.id !== id);
     saveServices(updated);
+    cloudDeleteService(id).catch(console.error);
     showNotification(`"${target?.name || 'Hizmet'}" silindi.`);
   };
 
@@ -262,12 +438,17 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     };
     const updated = [newProduct, ...products];
     saveProducts(updated);
+    cloudSaveProduct(newProduct).catch(console.error);
     showNotification(`"${newProduct.name}" mağazaya eklendi ve yayında!`);
   };
 
   const updateProduct = (id: string, updatedFields: Partial<SalonProduct>) => {
     const updated = products.map((p) => (p.id === id ? { ...p, ...updatedFields } : p));
     saveProducts(updated);
+    const target = updated.find((p) => p.id === id);
+    if (target) {
+      cloudSaveProduct(target).catch(console.error);
+    }
     showNotification('Ürün ve fiyat güncellendi.');
   };
 
@@ -275,6 +456,7 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     const target = products.find((p) => p.id === id);
     const updated = products.filter((p) => p.id !== id);
     saveProducts(updated);
+    cloudDeleteProduct(id).catch(console.error);
     showNotification(`"${target?.name || 'Ürün'}" kaldırıldı.`);
   };
 
@@ -287,9 +469,12 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     };
     const updated = [newApt, ...appointments];
     saveAppointments(updated);
+    cloudSaveAppointment(newApt).catch(console.error);
 
     // Auto-register client in CRM if new
-    const existingClient = clients.find((c) => c.phone.replace(/[^0-9]/g, '') === newApt.clientPhone.replace(/[^0-9]/g, ''));
+    const existingClient = clients.find(
+      (c) => c.phone.replace(/[^0-9]/g, '') === newApt.clientPhone.replace(/[^0-9]/g, '')
+    );
     if (!existingClient) {
       const newClientProfile: ClientProfile = {
         name: newApt.clientName,
@@ -299,6 +484,7 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
         createdAt: new Date().toISOString(),
       };
       saveClients([newClientProfile, ...clients]);
+      cloudSaveClient(newClientProfile).catch(console.error);
     }
 
     showNotification(`Randevu kaydedildi: ${newApt.clientName} (${newApt.time})`);
@@ -308,6 +494,7 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     const targetApt = appointments.find((a) => a.id === id);
     const updated = appointments.map((a) => (a.id === id ? { ...a, status } : a));
     saveAppointments(updated);
+    cloudUpdateAppointmentStatus(id, status).catch(console.error);
 
     // If status is TAMAMLANDI, automatically award 5% loyalty ParaPuan to client!
     if (status === 'TAMAMLANDI' && targetApt) {
@@ -316,12 +503,15 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
       const clientExists = clients.find((c) => c.phone.replace(/[^0-9]/g, '') === cleanPhone);
 
       if (clientExists) {
+        const updatedClient = {
+          ...clientExists,
+          loyaltyPoints: clientExists.loyaltyPoints + earnedPoints,
+        };
         const updatedClients = clients.map((c) =>
-          c.phone.replace(/[^0-9]/g, '') === cleanPhone
-            ? { ...c, loyaltyPoints: c.loyaltyPoints + earnedPoints }
-            : c
+          c.phone.replace(/[^0-9]/g, '') === cleanPhone ? updatedClient : c
         );
         saveClients(updatedClients);
+        cloudSaveClient(updatedClient).catch(console.error);
         showNotification(`Randevu tamamlandı! Danışana ${earnedPoints} ₺ ParaPuan tanımlandı.`);
       } else {
         showNotification(`Randevu tamamlandı.`);
@@ -334,12 +524,17 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
   const deleteAppointment = (id: string) => {
     const updated = appointments.filter((a) => a.id !== id);
     saveAppointments(updated);
+    cloudDeleteAppointment(id).catch(console.error);
     showNotification('Randevu kaydı silindi.');
   };
 
   const markAppointmentReminded = (id: string) => {
     const updated = appointments.map((a) => (a.id === id ? { ...a, reminded: true } : a));
     saveAppointments(updated);
+    const target = updated.find((a) => a.id === id);
+    if (target) {
+      cloudSaveAppointment(target).catch(console.error);
+    }
     showNotification('WhatsApp hatırlatma gönderimi kaydedildi.');
   };
 
@@ -361,6 +556,7 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     }
     const updated = [...timeSlots, trimmed];
     saveTimeSlots(updated);
+    cloudSaveSettings({ timeSlots: updated }).catch(console.error);
     showNotification(`Yeni randevu saati eklendi: ${trimmed}`);
   };
 
@@ -371,11 +567,13 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     }
     const updated = timeSlots.filter((s) => s !== slot);
     saveTimeSlots(updated);
+    cloudSaveSettings({ timeSlots: updated }).catch(console.error);
     showNotification(`Randevu saati kaldırıldı: ${slot}`);
   };
 
   const resetTimeSlots = () => {
     saveTimeSlots(INITIAL_TIME_SLOTS);
+    cloudSaveSettings({ timeSlots: INITIAL_TIME_SLOTS }).catch(console.error);
     showNotification('Randevu saatleri varsayılan ayarlara döndürüldü.');
   };
 
@@ -410,6 +608,7 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
       showNotification(`${date} tarihi randevulara kapatıldı.`);
     }
     saveBlockedDates(updated);
+    cloudSaveSettings({ blockedDates: updated }).catch(console.error);
   };
 
   const toggleBlockSlot = (date: string, time: string) => {
@@ -424,6 +623,7 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
       showNotification(`${date} ${time} saati randevulara kapatıldı.`);
     }
     saveBlockedSlots(updated);
+    cloudSaveSettings({ blockedSlots: updated }).catch(console.error);
   };
 
   const isDateBlocked = (date: string) => {
@@ -450,21 +650,35 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
   // CRM: Update Client Notes & Memory
   const updateClientNotes = (phone: string, notes: string) => {
     const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const updated = clients.map((c) =>
-      c.phone.replace(/[^0-9]/g, '') === cleanPhone ? { ...c, specialNotes: notes } : c
-    );
+    let updatedClient: ClientProfile | undefined;
+    const updated = clients.map((c) => {
+      if (c.phone.replace(/[^0-9]/g, '') === cleanPhone) {
+        updatedClient = { ...c, specialNotes: notes };
+        return updatedClient;
+      }
+      return c;
+    });
     saveClients(updated);
+    if (updatedClient) {
+      cloudSaveClient(updatedClient).catch(console.error);
+    }
     showNotification('Danışan formül ve işlem hafızası güncellendi.');
   };
 
   const addLoyaltyPoints = (phone: string, points: number) => {
     const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const updated = clients.map((c) =>
-      c.phone.replace(/[^0-9]/g, '') === cleanPhone
-        ? { ...c, loyaltyPoints: Math.max(0, c.loyaltyPoints + points) }
-        : c
-    );
+    let updatedClient: ClientProfile | undefined;
+    const updated = clients.map((c) => {
+      if (c.phone.replace(/[^0-9]/g, '') === cleanPhone) {
+        updatedClient = { ...c, loyaltyPoints: Math.max(0, c.loyaltyPoints + points) };
+        return updatedClient;
+      }
+      return c;
+    });
     saveClients(updated);
+    if (updatedClient) {
+      cloudSaveClient(updatedClient).catch(console.error);
+    }
     showNotification(`ParaPuan bakiyesi güncellendi.`);
   };
 
@@ -481,6 +695,7 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     };
     const updated = [newPkg, ...packages];
     savePackages(updated);
+    cloudSavePackage(newPkg).catch(console.error);
     showNotification(`"${newPkg.packageName}" paketi ${newPkg.clientName} için tanımlandı.`);
   };
 
@@ -498,18 +713,23 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     const dd = String(now.getDate()).padStart(2, '0');
     const today = `${yyyy}-${mm}-${dd}`;
 
+    let updatedPkg: ClientPackage | undefined;
     const updated = packages.map((p) => {
       if (p.id === packageId) {
-        return {
+        updatedPkg = {
           ...p,
           completedSessions: p.completedSessions + 1,
           lastSessionDate: today,
         };
+        return updatedPkg;
       }
       return p;
     });
 
     savePackages(updated);
+    if (updatedPkg) {
+      cloudSavePackage(updatedPkg).catch(console.error);
+    }
     const remaining = target.totalSessions - (target.completedSessions + 1);
     showNotification(`1 seans düşüldü! Kalan seans: ${remaining}`);
   };
@@ -517,6 +737,7 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
   const deletePackage = (packageId: string) => {
     const updated = packages.filter((p) => p.id !== packageId);
     savePackages(updated);
+    cloudDeletePackage(packageId).catch(console.error);
     showNotification('Paket kaydı silindi.');
   };
 
@@ -528,12 +749,14 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     };
     const updated = [newExp, ...expenses];
     saveExpenses(updated);
+    cloudSaveExpense(newExp).catch(console.error);
     showNotification(`Masraf kaydedildi: ${newExp.title}`);
   };
 
   const deleteExpense = (id: string) => {
     const updated = expenses.filter((e) => e.id !== id);
     saveExpenses(updated);
+    cloudDeleteExpense(id).catch(console.error);
     showNotification('Gider kaydı silindi.');
   };
 
@@ -668,6 +891,9 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
         sendWhatsAppOrder,
         notification,
         showNotification,
+        isCloudConnected,
+        saveFirebaseConfig,
+        clearFirebaseConfig,
       }}
     >
       {children}

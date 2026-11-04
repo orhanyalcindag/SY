@@ -53,8 +53,10 @@ import {
   FileText,
   CreditCard,
   Receipt,
+  Cloud,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import FirebaseConnectModal from '@/components/FirebaseConnectModal';
 
 export default function AdminPage() {
   const {
@@ -95,7 +97,10 @@ export default function AdminPage() {
     addExpense,
     deleteExpense,
     notification,
+    isCloudConnected,
   } = useSalon();
+
+  const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
 
   // Active tab navigation
   const [activeTab, setActiveTab] = useState<
@@ -526,7 +531,32 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Cloud Database Sync Status */}
+          {isCloudConnected ? (
+            <button
+              type="button"
+              onClick={() => setIsCloudModalOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-300 text-xs font-semibold transition flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.25)] cursor-pointer"
+              title="Canlı Bulut Veritabanı Aktif"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+              <span className="hidden sm:inline">Bulut: Aktif</span>
+              <span className="sm:hidden">Bulut</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsCloudModalOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-amber-950/60 hover:bg-amber-900/80 border border-amber-600/60 text-amber-300 text-xs font-semibold transition flex items-center gap-1.5 shadow-[0_0_10px_rgba(245,158,11,0.2)] cursor-pointer"
+              title="Verileri tüm cihazlarda ortak eşitlemek için tıklayın"
+            >
+              <Cloud className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="hidden sm:inline">Bulut Veritabanı Bağla</span>
+              <span className="sm:hidden">Bulut</span>
+            </button>
+          )}
+
           <Link
             href="/urunler"
             target="_blank"
@@ -534,7 +564,7 @@ export default function AdminPage() {
             title="Mağazayı Yeni Sekmede Aç"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Mağazayı Aç (/urunler)</span>
+            <span className="hidden sm:inline">Mağazayı Aç</span>
           </Link>
           <Link
             href="/"
@@ -2799,6 +2829,12 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* Cloud Database Connect Modal */}
+      <FirebaseConnectModal
+        isOpen={isCloudModalOpen}
+        onClose={() => setIsCloudModalOpen(false)}
+      />
     </div>
   );
 }
