@@ -223,6 +223,15 @@ export const INITIAL_PRODUCTS: SalonProduct[] = [
   },
 ];
 
+const getRelativeDate = (offsetDays: number = 0): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 export const INITIAL_APPOINTMENTS: SalonAppointment[] = [
   {
     id: 'apt-1',
@@ -230,11 +239,11 @@ export const INITIAL_APPOINTMENTS: SalonAppointment[] = [
     clientPhone: '+90 532 411 22 33',
     serviceName: 'Hydrafacial Derinlemesine Medikal Cilt Bakımı',
     price: 1400,
-    date: '2026-11-04',
+    date: getRelativeDate(0),
     time: '11:00',
     status: 'ONAYLANDI',
     notes: 'Hassas cilt tipi, güneş kremi önerisi yapılacak.',
-    createdAt: '2026-11-03T14:20:00Z',
+    createdAt: new Date().toISOString(),
   },
   {
     id: 'apt-2',
@@ -242,11 +251,11 @@ export const INITIAL_APPOINTMENTS: SalonAppointment[] = [
     clientPhone: '+90 544 555 66 77',
     serviceName: 'Jel Protez Tırnak + Özel Nail Art Tasarımı',
     price: 950,
-    date: '2026-11-04',
+    date: getRelativeDate(0),
     time: '13:30',
     status: 'ISLEMDE',
     notes: 'Kare form istiyor, simli french tasarım.',
-    createdAt: '2026-11-03T16:10:00Z',
+    createdAt: new Date().toISOString(),
   },
   {
     id: 'apt-3',
@@ -254,11 +263,11 @@ export const INITIAL_APPOINTMENTS: SalonAppointment[] = [
     clientPhone: '+90 533 777 88 99',
     serviceName: 'Buz Başlıklı Hibrit Lazer Epilasyon (Tüm Vücut - 6 Seans)',
     price: 8500,
-    date: '2026-11-04',
+    date: getRelativeDate(1),
     time: '15:30',
     status: 'BEKLEMEDE',
     notes: '1. seans kontrolü ve seans açılışı.',
-    createdAt: '2026-11-04T08:30:00Z',
+    createdAt: new Date().toISOString(),
   },
   {
     id: 'apt-4',
@@ -266,11 +275,11 @@ export const INITIAL_APPOINTMENTS: SalonAppointment[] = [
     clientPhone: '+90 535 999 00 11',
     serviceName: 'Volume İpek Kirpik (3D - 5D Rus Hacmi)',
     price: 1100,
-    date: '2026-11-04',
+    date: getRelativeDate(2),
     time: '17:00',
     status: 'ONAYLANDI',
     notes: 'Doğal kedi gözü kıvrımı (C curl) tercih ediyor.',
-    createdAt: '2026-11-04T09:15:00Z',
+    createdAt: new Date().toISOString(),
   },
   {
     id: 'apt-5',
@@ -278,11 +287,11 @@ export const INITIAL_APPOINTMENTS: SalonAppointment[] = [
     clientPhone: '+90 542 333 44 55',
     serviceName: 'Somon DNA & Gençlik Işıltısı Protokolü',
     price: 2200,
-    date: '2026-11-03',
+    date: getRelativeDate(-1),
     time: '14:00',
     status: 'TAMAMLANDI',
     notes: 'İşlem tamamlandı, C vitamini serum satın aldı.',
-    createdAt: '2026-11-02T11:00:00Z',
+    createdAt: new Date().toISOString(),
   },
 ];
 
@@ -524,15 +533,15 @@ export const INITIAL_EXPENSES: SalonExpense[] = [
     title: 'Salon Kirası & İğneada Caddesi Dükkan Bedeli',
     category: 'Kira & Aidat',
     amount: 15000,
-    date: '2026-11-01',
-    note: 'Kasım 2026 kira bedeli ödendi.',
+    date: getRelativeDate(-5),
+    note: 'Salon kira bedeli ödendi.',
   },
   {
     id: 'exp-2',
     title: 'Hydrafacial Solüsyon Seti & Somon DNA Ampulleri',
     category: 'Kozmetik & Sarf Malzeme',
     amount: 6400,
-    date: '2026-11-02',
+    date: getRelativeDate(-3),
     note: 'Medikal cilt bakım sıvıları tedarik edildi.',
   },
   {
@@ -540,15 +549,15 @@ export const INITIAL_EXPENSES: SalonExpense[] = [
     title: 'Elektrik, Su & Klima Isınma Faturası',
     category: 'Elektrik, Su, Isınma',
     amount: 2850,
-    date: '2026-11-03',
-    note: 'Ekim ayı salon tüketimi.',
+    date: getRelativeDate(-2),
+    note: 'Aylık salon tüketimi.',
   },
   {
     id: 'exp-4',
     title: 'Instagram & Trakya Bölgesi Sponsorlu Reklam',
     category: 'Pazarlama & Reklam',
     amount: 1800,
-    date: '2026-11-03',
+    date: getRelativeDate(-1),
     note: 'Kırklareli & Lüleburgaz hedefli dijital kampanya.',
   },
 ];

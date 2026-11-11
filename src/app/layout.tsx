@@ -52,6 +52,41 @@ export const metadata: Metadata = {
   },
 };
 
+const schemaOrgData = {
+  '@context': 'https://schema.org',
+  '@type': 'BeautySalon',
+  name: 'Simay Yorulmaz Health & Beauty',
+  image: '/images/hero.jpg',
+  description:
+    'Demirköy / Kırklareli’nde Hydrafacial medikal cilt bakımı, buz başlıklı hibrit lazer epilasyon, jel protez tırnak & nail art, somon DNA gençlik protokolleri. Uzman estetisyen Simay Yorulmaz.',
+  telephone: '+90 545 429 39 39',
+  priceRange: '₺₺',
+  currenciesAccepted: 'TRY',
+  paymentAccepted: 'Nakit, Kredi Kartı, Havale',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: 'Orhaniye Mah., İğneada Cad. No: 36/C',
+    addressLocality: 'Demirköy',
+    addressRegion: 'Kırklareli',
+    postalCode: '39500',
+    addressCountry: 'TR',
+  },
+  geo: {
+    '@type': 'GeoCoordinates',
+    latitude: 41.8219,
+    longitude: 27.7589,
+  },
+  openingHoursSpecification: [
+    {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      opens: '09:30',
+      closes: '19:30',
+    },
+  ],
+  sameAs: ['https://www.instagram.com/simay.yorulmazz'],
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -66,6 +101,10 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Simay Yorulmaz" />
         <meta name="mobile-web-app-capable" content="yes" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrgData) }}
+        />
       </head>
       <body className="bg-[#0A0A0C] text-zinc-100 min-h-screen antialiased selection:bg-[#D4AF37] selection:text-black pb-16 sm:pb-0">
         <SalonProvider>

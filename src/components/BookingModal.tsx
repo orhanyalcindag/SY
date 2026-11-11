@@ -36,9 +36,9 @@ export default function BookingModal() {
     isSlotBlocked,
   } = useSalon();
 
-  const [todayStr, setTodayStr] = useState('2026-11-04');
+  const [todayStr, setTodayStr] = useState('');
   const [selectedServiceId, setSelectedServiceId] = useState<string>('');
-  const [date, setDate] = useState('2026-11-04');
+  const [date, setDate] = useState('');
   const [time, setTime] = useState('11:30');
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('+90 5');
@@ -46,16 +46,34 @@ export default function BookingModal() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Client-side date initialization to prevent prerender hydration mismatch
+  // Client-side date initialization and modal open refresh
   useEffect(() => {
+    const formatDate = (d: Date) => {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
     const now = new Date();
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const formatted = `${yyyy}-${mm}-${dd}`;
-    setTodayStr(formatted);
-    setDate((prev) => (prev < formatted ? formatted : prev));
-  }, []);
+    const today = formatDate(now);
+    setTodayStr(today);
+
+    // If today is Monday (salon is closed), default to tomorrow (Tuesday)
+    let initialDate = today;
+    if (now.getDay() === 1) {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      initialDate = formatDate(tomorrow);
+    }
+
+    setDate((prev) => (!prev || prev < today ? initialDate : prev));
+
+    if (isBookingOpen) {
+      setIsSuccess(false);
+      setErrorMessage('');
+    }
+  }, [isBookingOpen]);
 
   useEffect(() => {
     if (selectedServiceForBooking) {

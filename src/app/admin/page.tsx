@@ -142,23 +142,23 @@ export default function AdminPage() {
   const [showNewPass, setShowNewPass] = useState(false);
 
   // Client-safe Date initialization
-  const [todayStr, setTodayStr] = useState('2026-11-04');
-  const [tomorrowStr, setTomorrowStr] = useState('2026-11-05');
-  const [currentWeekMonday, setCurrentWeekMonday] = useState<Date>(new Date('2026-11-02T00:00:00'));
+  const [todayStr, setTodayStr] = useState('');
+  const [tomorrowStr, setTomorrowStr] = useState('');
+  const [currentWeekMonday, setCurrentWeekMonday] = useState<Date>(new Date('2026-01-05T00:00:00Z'));
   const [weekOffset, setWeekOffset] = useState(0);
 
   // Quick Appointment Form State
   const [newClientName, setNewClientName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('+90 5');
   const [newSelectedServiceId, setNewSelectedServiceId] = useState(services[0]?.id || '');
-  const [newDate, setNewDate] = useState('2026-11-04');
+  const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState(timeSlots[0] || '11:30');
   const [newNotes, setNewNotes] = useState('');
   const [formError, setFormError] = useState('');
 
   // Slot Management State
   const [newSlotInput, setNewSlotInput] = useState('');
-  const [manualBlockDateInput, setManualBlockDateInput] = useState('2026-11-08');
+  const [manualBlockDateInput, setManualBlockDateInput] = useState('');
 
   // Weekly Dashboard Appointment Detail Modal
   const [selectedAppointment, setSelectedAppointment] = useState<SalonAppointment | null>(null);
@@ -188,7 +188,7 @@ export default function AdminPage() {
   const [expTitle, setExpTitle] = useState('');
   const [expCategory, setExpCategory] = useState<ExpenseCategory>('Kozmetik & Sarf Malzeme');
   const [expAmount, setExpAmount] = useState(1500);
-  const [expDate, setExpDate] = useState('2026-11-04');
+  const [expDate, setExpDate] = useState('');
   const [expNote, setExpNote] = useState('');
 
   // Appointment filters
@@ -229,10 +229,11 @@ export default function AdminPage() {
     const tmrwFormatted = `${tmrw.getFullYear()}-${String(tmrw.getMonth() + 1).padStart(2, '0')}-${String(tmrw.getDate()).padStart(2, '0')}`;
     setTomorrowStr(tmrwFormatted);
 
-    // Calculate Monday of the current week
+    // Calculate Monday of the current week (without mutating now)
     const day = now.getDay(); // 0 is Sunday, 1 is Monday
     const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(now.setDate(diff));
+    const monday = new Date(now);
+    monday.setDate(diff);
     monday.setHours(0, 0, 0, 0);
     setCurrentWeekMonday(monday);
   }, []);
