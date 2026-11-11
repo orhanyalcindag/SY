@@ -20,6 +20,7 @@ export const SALON_INFO = {
   district: 'Demirköy',
   instagram: 'simayyorulmaz_kirklareli',
   instagramUrl: 'https://www.instagram.com/simayyorulmaz_kirklareli/',
+  mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Simay+Yorulmaz+Health+%26+Beauty+Demirk%C3%B6y',
   workingHours: 'Pazartesi - Cumartesi: 09:30 - 19:30',
   description:
     'Kırklareli Demirköy’de en yeni teknoloji cihazlar, steril klinik standartları ve kişiye özel güzellik protokolleriyle hizmet veren ayrıcalıklı güzellik ve estetik merkezi.',

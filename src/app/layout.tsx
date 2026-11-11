@@ -5,6 +5,9 @@ import CartDrawer from '@/components/CartDrawer';
 import BookingModal from '@/components/BookingModal';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
+import ClientPortalModal from '@/components/ClientPortalModal';
+import PrePostCareModal from '@/components/PrePostCareModal';
+import GiftVoucherModal from '@/components/GiftVoucherModal';
 
 export const viewport: Viewport = {
   themeColor: '#0A0A0C',
@@ -111,6 +114,9 @@ export default function RootLayout({
           {children}
           <CartDrawer />
           <BookingModal />
+          <ClientPortalModal />
+          <PrePostCareModal />
+          <GiftVoucherModal />
           <MobileBottomNav />
           <PWAInstallPrompt />
         </SalonProvider>

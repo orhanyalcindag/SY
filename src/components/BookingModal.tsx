@@ -100,6 +100,26 @@ export default function BookingModal() {
     }
   }, [date, occupiedSlots, time, timeSlots]);
 
+  const handleClose = () => {
+    setIsBookingOpen(false);
+    setSelectedServiceForBooking(null);
+    setIsSuccess(false);
+    setClientName('');
+    setNotes('');
+    setErrorMessage('');
+  };
+
+  // Keyboard Escape listener - MUST be called unconditionally before any early returns
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isBookingOpen) {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isBookingOpen]);
+
   if (!isBookingOpen) return null;
 
   const currentService =
@@ -178,27 +198,18 @@ export default function BookingModal() {
     handleClose();
   };
 
-  const handleClose = () => {
-    setIsBookingOpen(false);
-    setSelectedServiceForBooking(null);
-    setIsSuccess(false);
-    setClientName('');
-    setNotes('');
-    setErrorMessage('');
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto overflow-x-hidden w-full max-w-full box-border">
       {/* Backdrop */}
       <div
         onClick={handleClose}
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-black/85 backdrop-blur-sm transition-opacity"
       />
 
       {/* Modal Card */}
-      <div className="relative z-10 w-full max-w-lg bg-[#0F0F12] border border-[#D4AF37]/40 rounded-2xl text-white shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="relative z-10 w-full max-w-lg mx-auto bg-[#0F0F12] border border-[#D4AF37]/40 rounded-2xl sm:rounded-3xl text-white shadow-2xl flex flex-col max-h-[88vh] overflow-hidden my-auto animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="px-6 py-5 bg-black/60 border-b border-white/10 flex items-center justify-between">
+        <div className="px-5 sm:px-6 py-4 sm:py-5 bg-black/60 border-b border-white/10 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-[#D4AF37]/10 text-[#D4AF37]">
               <Calendar className="w-5 h-5" />
@@ -222,7 +233,7 @@ export default function BookingModal() {
 
         {/* Body */}
         {isSuccess ? (
-          <div className="p-8 text-center space-y-4">
+          <div className="p-6 sm:p-8 text-center space-y-4 overflow-y-auto flex-1 overscroll-contain">
             <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
               <CheckCircle2 className="w-8 h-8" />
             </div>
@@ -265,7 +276,7 @@ export default function BookingModal() {
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[82vh] overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain">
             {errorMessage && (
               <div className="p-3 rounded-lg bg-red-950/80 border border-red-700 text-red-200 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />

@@ -13,10 +13,22 @@ import {
   X,
   Smartphone,
   Download,
+  Search,
+  Gift,
+  BookOpen,
+  Zap,
+  MessageCircleQuestion,
 } from 'lucide-react';
 
 export default function Navbar() {
-  const { cartItemCount, setIsCartOpen, setIsBookingOpen } = useSalon();
+  const {
+    cartItemCount,
+    setIsCartOpen,
+    setIsBookingOpen,
+    setIsClientPortalOpen,
+    setIsGiftVoucherOpen,
+    setIsPrePostCareOpen,
+  } = useSalon();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -50,42 +62,43 @@ export default function Navbar() {
       {/* Main navigation header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#997929] via-[#D4AF37] to-[#F3E5AB] p-[1.5px] shadow-lg shadow-[#D4AF37]/10 group-hover:scale-105 transition">
+        <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group shrink min-w-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-[#997929] via-[#D4AF37] to-[#F3E5AB] p-[1.5px] shadow-lg shadow-[#D4AF37]/10 group-hover:scale-105 transition shrink-0">
             <div className="w-full h-full bg-[#0A0A0C] rounded-full flex items-center justify-center">
-              <span className="font-serif font-black text-lg text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB]">
+              <span className="font-serif font-black text-base sm:text-lg text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB]">
                 SY
               </span>
             </div>
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-serif tracking-wider font-extrabold text-base sm:text-lg text-zinc-100 group-hover:text-[#D4AF37] transition">
+              <span className="font-serif tracking-wider font-extrabold text-sm sm:text-lg text-zinc-100 group-hover:text-[#D4AF37] transition truncate block">
                 SİMAY YORULMAZ
               </span>
             </div>
-            <p className="text-[10px] tracking-widest uppercase font-semibold text-[#D4AF37]/90 -mt-0.5">
+            <p className="text-[9px] sm:text-[10px] tracking-widest uppercase font-semibold text-[#D4AF37]/90 -mt-0.5 truncate block">
               Health & Beauty · Demirköy
             </p>
           </div>
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-7 text-xs font-medium tracking-wide">
+        <nav className="hidden lg:flex items-center gap-6 text-xs font-medium tracking-wide">
           <Link href="/#hizmetler" className="text-zinc-300 hover:text-[#D4AF37] transition">
             İşlemler & Fiyatlar
+          </Link>
+          <Link href="/#hesaplayici" className="text-zinc-300 hover:text-[#D4AF37] transition flex items-center gap-1">
+            <Zap className="w-3.5 h-3.5 text-amber-400" />
+            <span>Lazer Sihirbazı</span>
           </Link>
           <Link href="/urunler" className="text-zinc-300 hover:text-[#D4AF37] transition flex items-center gap-1.5 group">
             <span>Özel Ürünler</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 group-hover:bg-emerald-500 group-hover:text-black transition">
-              WhatsApp Mağaza
+              Mağaza
             </span>
           </Link>
-          <Link href="/#hakkimizda" className="text-zinc-300 hover:text-[#D4AF37] transition">
-            Hakkımızda
-          </Link>
-          <Link href="/#galeri" className="text-zinc-300 hover:text-[#D4AF37] transition">
-            Galeri
+          <Link href="/#sss" className="text-zinc-300 hover:text-[#D4AF37] transition">
+            SSS
           </Link>
           <Link href="/#yorumlar" className="text-zinc-300 hover:text-[#D4AF37] transition">
             Yorumlar
@@ -93,6 +106,16 @@ export default function Navbar() {
           <Link href="/#iletisim" className="text-zinc-300 hover:text-[#D4AF37] transition">
             İletişim & Konum
           </Link>
+
+          <button
+            onClick={() => setIsClientPortalOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-[#D4AF37] transition cursor-pointer text-[11px] font-semibold"
+            title="Randevunuzu ve paket seanslarınızı sorgulayın"
+          >
+            <Search className="w-3.5 h-3.5 text-[#D4AF37]" />
+            <span>Randevumu Sorgula</span>
+          </button>
+
           <button
             onClick={() => {
               if (typeof window !== 'undefined') {
@@ -108,11 +131,11 @@ export default function Navbar() {
         </nav>
 
         {/* Action Controls: Cart, Booking, Mobile Menu Toggle */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {/* Cart Trigger */}
           <button
             onClick={() => setIsCartOpen(true)}
-            className="relative p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 hover:border-[#D4AF37]/50 hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer"
+            className="relative p-2 sm:p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 hover:border-[#D4AF37]/50 hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer"
             title="Alışveriş Sepeti"
           >
             <ShoppingBag className="w-4 h-4" />
@@ -127,16 +150,17 @@ export default function Navbar() {
           {/* Quick Booking CTA */}
           <button
             onClick={() => setIsBookingOpen(true)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA8222] hover:from-[#E5BF47] hover:to-[#B38F2C] text-black font-bold text-xs shadow-lg shadow-[#D4AF37]/20 flex items-center gap-1.5 transition transform active:scale-95 cursor-pointer"
+            className="px-3 py-2 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA8222] hover:from-[#E5BF47] hover:to-[#B38F2C] text-black font-bold text-xs shadow-lg shadow-[#D4AF37]/20 flex items-center gap-1.5 transition transform active:scale-95 cursor-pointer"
           >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Online Randevu</span>
+            <Calendar className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden sm:inline">Online Randevu</span>
+            <span className="sm:hidden font-extrabold text-[11px]">Randevu</span>
           </button>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile / Tablet Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 md:hidden"
+            className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 lg:hidden cursor-pointer"
             aria-label="Menüyü Aç/Kapat"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -144,9 +168,9 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Dropdown Menu */}
+      {/* Mobile & Tablet Dropdown Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-zinc-950/98 border-b border-zinc-800 px-4 py-4 space-y-3">
+        <div className="lg:hidden bg-zinc-950/98 border-b border-zinc-800 px-4 py-4 space-y-3">
           <Link
             href="/#hizmetler"
             onClick={() => setMobileMenuOpen(false)}
@@ -155,11 +179,57 @@ export default function Navbar() {
             İşlemler & Fiyatlar
           </Link>
           <Link
+            href="/#hesaplayici"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-sm text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-2"
+          >
+            <Zap className="w-4 h-4 text-amber-400" />
+            <span>Lazer & Paket Hesaplayıcı</span>
+          </Link>
+          <Link
             href="/urunler"
             onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm text-emerald-400 hover:text-emerald-300 font-semibold"
+            className="block py-2 text-sm text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-2"
           >
-            Özel Ürünler (WhatsApp Mağaza)
+            <ShoppingBag className="w-4 h-4 text-emerald-400" />
+            <span>Özel Ürünler (WhatsApp Mağaza)</span>
+          </Link>
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setIsClientPortalOpen(true);
+            }}
+            className="w-full text-left py-2 text-sm text-zinc-300 hover:text-[#D4AF37] flex items-center gap-2 cursor-pointer"
+          >
+            <Search className="w-4 h-4 text-[#D4AF37]" />
+            <span>Randevumu / Seansımı Sorgula</span>
+          </button>
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setIsGiftVoucherOpen(true);
+            }}
+            className="w-full text-left py-2 text-sm text-zinc-300 hover:text-[#D4AF37] flex items-center gap-2 cursor-pointer"
+          >
+            <Gift className="w-4 h-4 text-pink-400" />
+            <span>VIP Hediye Kartı Hazırla</span>
+          </button>
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setIsPrePostCareOpen(true);
+            }}
+            className="w-full text-left py-2 text-sm text-zinc-300 hover:text-[#D4AF37] flex items-center gap-2 cursor-pointer"
+          >
+            <BookOpen className="w-4 h-4 text-emerald-400" />
+            <span>İşlem Öncesi & Sonrası Rehberi</span>
+          </button>
+          <Link
+            href="/#sss"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-sm text-zinc-300 hover:text-[#D4AF37]"
+          >
+            Sıkça Sorulan Sorular (SSS)
           </Link>
           <Link
             href="/#hakkimizda"

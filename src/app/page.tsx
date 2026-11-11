@@ -7,6 +7,10 @@ import { useSalon } from '@/context/SalonContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import SkinConsultationModal from '@/components/SkinConsultationModal';
+import LiveAvailabilityTicker from '@/components/LiveAvailabilityTicker';
+import TreatmentCostEstimator from '@/components/TreatmentCostEstimator';
+import FAQSection from '@/components/FAQSection';
+import RegionalGuide from '@/components/RegionalGuide';
 import { SALON_INFO, SALON_GALLERY_IMAGES, GOOGLE_REVIEWS_DATA } from '@/data/initialData';
 import { SalonService } from '@/types';
 import {
@@ -27,6 +31,9 @@ import {
   ChevronRight,
   Award,
   Sparkle,
+  Gift,
+  Search,
+  BookOpen,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
@@ -38,6 +45,9 @@ export default function HomePage() {
     setIsBookingOpen,
     setSelectedServiceForBooking,
     setIsConsultationOpen,
+    setIsClientPortalOpen,
+    setIsGiftVoucherOpen,
+    setIsPrePostCareOpen,
     notification,
   } = useSalon();
 
@@ -137,6 +147,45 @@ export default function HomePage() {
                 </a>
               </div>
 
+              {/* Quick Feature Shortcut Pills */}
+              <div className="pt-3 flex flex-wrap items-center justify-center lg:justify-start gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setIsClientPortalOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/80 text-zinc-300 hover:text-[#D4AF37] font-medium flex items-center gap-1.5 transition cursor-pointer"
+                  title="Telefon numaranızla randevunuzu ve paket seanslarınızı sorgulayın"
+                >
+                  <Search className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  <span>Randevumu / Seansımı Sorgula</span>
+                </button>
+
+                <a
+                  href="#hesaplayici"
+                  className="px-3 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/80 text-zinc-300 hover:text-[#D4AF37] font-medium flex items-center gap-1.5 transition"
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Lazer Hesaplayıcı</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => setIsGiftVoucherOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/80 text-zinc-300 hover:text-[#D4AF37] font-medium flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Gift className="w-3.5 h-3.5 text-pink-400" />
+                  <span>Hediye Kartı Hazırla</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPrePostCareOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/80 text-zinc-300 hover:text-[#D4AF37] font-medium flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Bakım Rehberi</span>
+                </button>
+              </div>
+
               {/* Trust Badges */}
               <div className="pt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-left border-t border-white/10">
                 <div>
@@ -211,6 +260,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Realtime Live Availability & Daily Empty Slots Ticker */}
+      <LiveAvailabilityTicker />
 
       {/* Services Section (#hizmetler) with Visual Cards */}
       <section id="hizmetler" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -340,6 +392,9 @@ export default function HomePage() {
           </button>
         </div>
       </section>
+
+      {/* Interactive Laser & Package Cost Estimator */}
+      <TreatmentCostEstimator />
 
       {/* DEDICATED PRODUCTS TEASER SECTION (Redirects to /urunler) */}
       <section className="py-20 bg-zinc-950/70 border-y border-white/5 relative overflow-hidden">
@@ -734,6 +789,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Sıkça Sorulan Sorular (FAQ) & Schema.org FAQPage */}
+      <FAQSection />
+
       {/* Location & Contact Section (#iletisim) */}
       <section id="iletisim" className="py-24 bg-zinc-950/60 border-t border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -818,6 +876,9 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+
+          {/* Regional Distance & Travel Guide */}
+          <RegionalGuide />
         </div>
       </section>
 

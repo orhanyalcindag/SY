@@ -123,6 +123,12 @@ interface SalonContextType {
   setIsBookingOpen: (open: boolean) => void;
   isConsultationOpen: boolean;
   setIsConsultationOpen: (open: boolean) => void;
+  isClientPortalOpen: boolean;
+  setIsClientPortalOpen: (open: boolean) => void;
+  isPrePostCareOpen: boolean;
+  setIsPrePostCareOpen: (open: boolean) => void;
+  isGiftVoucherOpen: boolean;
+  setIsGiftVoucherOpen: (open: boolean) => void;
   selectedServiceForBooking: SalonService | null;
   setSelectedServiceForBooking: (service: SalonService | null) => void;
 
@@ -176,6 +182,9 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isConsultationOpen, setIsConsultationOpen] = useState(false);
+  const [isClientPortalOpen, setIsClientPortalOpen] = useState(false);
+  const [isPrePostCareOpen, setIsPrePostCareOpen] = useState(false);
+  const [isGiftVoucherOpen, setIsGiftVoucherOpen] = useState(false);
   const [selectedServiceForBooking, setSelectedServiceForBooking] = useState<SalonService | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -1089,6 +1098,12 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
         setIsBookingOpen,
         isConsultationOpen,
         setIsConsultationOpen,
+        isClientPortalOpen,
+        setIsClientPortalOpen,
+        isPrePostCareOpen,
+        setIsPrePostCareOpen,
+        isGiftVoucherOpen,
+        setIsGiftVoucherOpen,
         selectedServiceForBooking,
         setSelectedServiceForBooking,
         sendWhatsAppOrder,
