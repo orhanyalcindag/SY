@@ -93,12 +93,17 @@ export default function AdminPage() {
     isDateBlocked,
     isSlotBlocked,
     clients,
+    addClient,
+    updateClient,
+    deleteClient,
     updateClientNotes,
     addLoyaltyPoints,
     getClientByPhone,
     packages,
     addPackage,
+    updatePackage,
     consumeSession,
+    refundSession,
     deletePackage,
     expenses,
     addExpense,
@@ -166,11 +171,31 @@ export default function AdminPage() {
   // Quick Booking Modal from Weekly Calendar Click
   const [isQuickBookingModalOpen, setIsQuickBookingModalOpen] = useState(false);
 
-  // CRM Client Drawer / Modal State
+  // CRM Client Management State
   const [selectedClient, setSelectedClient] = useState<ClientProfile | null>(null);
   const [clientSearch, setClientSearch] = useState('');
   const [clientNoteEdit, setClientNoteEdit] = useState('');
   const [pointAddInput, setPointAddInput] = useState(50);
+
+  // New Client Form Modal State
+  const [isAddClientOpen, setIsAddClientOpen] = useState(false);
+  const [newClientFormName, setNewClientFormName] = useState('');
+  const [newClientFormPhone, setNewClientFormPhone] = useState('+90 5');
+  const [newClientFormNotes, setNewClientFormNotes] = useState('');
+  const [newClientFormPoints, setNewClientFormPoints] = useState(0);
+  const [clientFormError, setClientFormError] = useState('');
+
+  // Edit Client Modal State
+  const [editingClient, setEditingClient] = useState<ClientProfile | null>(null);
+  const [editClientName, setEditClientName] = useState('');
+  const [editClientPhone, setEditClientPhone] = useState('');
+  const [editClientNotes, setEditClientNotes] = useState('');
+  const [editClientPoints, setEditClientPoints] = useState(0);
+  const [editClientError, setEditClientError] = useState('');
+
+  // Delete Client Confirmation
+  const [clientToDelete, setClientToDelete] = useState<ClientProfile | null>(null);
+  const [isDeleteClientModalOpen, setIsDeleteClientModalOpen] = useState(false);
 
   // Package Management State
   const [isAddPackageOpen, setIsAddPackageOpen] = useState(false);
@@ -182,6 +207,21 @@ export default function AdminPage() {
   const [pkgTotalPrice, setPkgTotalPrice] = useState(9500);
   const [pkgPaidAmount, setPkgPaidAmount] = useState(9500);
   const [pkgNotes, setPkgNotes] = useState('');
+  const [pkgSearch, setPkgSearch] = useState('');
+
+  // Edit Package Modal State
+  const [editingPackage, setEditingPackage] = useState<ClientPackage | null>(null);
+  const [editPkgName, setEditPkgName] = useState('');
+  const [editPkgCategory, setEditPkgCategory] = useState<ServiceCategory>('Lazer Epilasyon');
+  const [editPkgClientName, setEditPkgClientName] = useState('');
+  const [editPkgClientPhone, setEditPkgClientPhone] = useState('');
+  const [editPkgTotalSessions, setEditPkgTotalSessions] = useState(8);
+  const [editPkgCompletedSessions, setEditPkgCompletedSessions] = useState(0);
+  const [editPkgTotalPrice, setEditPkgTotalPrice] = useState(9500);
+  const [editPkgPaidAmount, setEditPkgPaidAmount] = useState(9500);
+  const [editPkgNotes, setEditPkgNotes] = useState('');
+  const [editPkgLastSessionDate, setEditPkgLastSessionDate] = useState('');
+  const [pkgEditError, setPkgEditError] = useState('');
 
   // Expense Management State
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
@@ -389,6 +429,144 @@ export default function AdminPage() {
     setNewSlotInput('');
   };
 
+  // Handle Add New Client
+  const handleCreateClient = (e: React.FormEvent) => {
+    e.preventDefault();
+    setClientFormError('');
+    if (!newClientFormName.trim()) {
+      setClientFormError('Lütfen danışan adını ve soyadını giriniz.');
+      return;
+    }
+    if (!newClientFormPhone || newClientFormPhone.length < 10) {
+      setClientFormError('Lütfen geçerli bir telefon numarası giriniz (en az 10 hane).');
+      return;
+    }
+
+    const res = addClient({
+      name: newClientFormName.trim(),
+      phone: newClientFormPhone.trim(),
+      specialNotes: newClientFormNotes.trim(),
+      loyaltyPoints: Number(newClientFormPoints) || 0,
+    });
+
+    if (!res.success) {
+      setClientFormError(res.message);
+      return;
+    }
+
+    setNewClientFormName('');
+    setNewClientFormPhone('+90 5');
+    setNewClientFormNotes('');
+    setNewClientFormPoints(0);
+    setClientFormError('');
+    setIsAddClientOpen(false);
+  };
+
+  // Open Edit Client Modal
+  const handleOpenEditClient = (client: ClientProfile) => {
+    setEditingClient(client);
+    setEditClientName(client.name);
+    setEditClientPhone(client.phone);
+    setEditClientNotes(client.specialNotes || '');
+    setEditClientPoints(client.loyaltyPoints || 0);
+    setEditClientError('');
+  };
+
+  // Save Edit Client
+  const handleSaveEditClient = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClient) return;
+    setEditClientError('');
+
+    if (!editClientName.trim()) {
+      setEditClientError('Danışan adı boş bırakılamaz.');
+      return;
+    }
+    if (!editClientPhone || editClientPhone.length < 10) {
+      setEditClientError('Geçerli bir telefon numarası giriniz.');
+      return;
+    }
+
+    const res = updateClient(editingClient.phone, {
+      name: editClientName.trim(),
+      phone: editClientPhone.trim(),
+      specialNotes: editClientNotes.trim(),
+      loyaltyPoints: Number(editClientPoints) || 0,
+    });
+
+    if (!res.success) {
+      setEditClientError(res.message);
+      return;
+    }
+
+    setEditingClient(null);
+  };
+
+  // Handle Delete Client
+  const handleConfirmDeleteClient = () => {
+    if (!clientToDelete) return;
+    deleteClient(clientToDelete.phone);
+    if (editingClient?.phone === clientToDelete.phone) {
+      setEditingClient(null);
+    }
+    setClientToDelete(null);
+    setIsDeleteClientModalOpen(false);
+  };
+
+  // Open Edit Package Modal
+  const handleOpenEditPackage = (pkg: ClientPackage) => {
+    setEditingPackage(pkg);
+    setEditPkgName(pkg.packageName);
+    setEditPkgCategory(pkg.category);
+    setEditPkgClientName(pkg.clientName);
+    setEditPkgClientPhone(pkg.clientPhone);
+    setEditPkgTotalSessions(pkg.totalSessions);
+    setEditPkgCompletedSessions(pkg.completedSessions);
+    setEditPkgTotalPrice(pkg.totalPrice);
+    setEditPkgPaidAmount(pkg.paidAmount);
+    setEditPkgNotes(pkg.notes || '');
+    setEditPkgLastSessionDate(pkg.lastSessionDate || todayStr);
+    setPkgEditError('');
+  };
+
+  // Save Edit Package
+  const handleSaveEditPackage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPackage) return;
+    setPkgEditError('');
+
+    const total = Number(editPkgTotalSessions);
+    const completed = Number(editPkgCompletedSessions);
+
+    if (total <= 0) {
+      setPkgEditError('Toplam seans sayısı en az 1 olmalıdır.');
+      return;
+    }
+    if (completed < 0) {
+      setPkgEditError('Tamamlanan seans sayısı 0 veya daha büyük olmalıdır.');
+      return;
+    }
+    if (completed > total) {
+      setPkgEditError('Tamamlanan seans sayısı toplam seans sayısından büyük olamaz.');
+      return;
+    }
+
+    updatePackage(editingPackage.id, {
+      packageName: editPkgName.trim(),
+      category: editPkgCategory,
+      clientName: editPkgClientName.trim(),
+      clientPhone: editPkgClientPhone.trim(),
+      totalSessions: total,
+      completedSessions: completed,
+      totalPrice: Number(editPkgTotalPrice),
+      paidAmount: Number(editPkgPaidAmount),
+      notes: editPkgNotes.trim(),
+      lastSessionDate: editPkgLastSessionDate || undefined,
+    });
+
+    setEditingPackage(null);
+  };
+
   // Handle Add Package
   const handleCreatePackage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -533,6 +711,15 @@ export default function AdminPage() {
       c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
       c.phone.includes(clientSearch) ||
       (c.specialNotes && c.specialNotes.toLowerCase().includes(clientSearch.toLowerCase()))
+  );
+
+  // Filtered Packages
+  const filteredPackages = packages.filter(
+    (p) =>
+      p.clientName.toLowerCase().includes(pkgSearch.toLowerCase()) ||
+      p.clientPhone.includes(pkgSearch) ||
+      p.packageName.toLowerCase().includes(pkgSearch.toLowerCase()) ||
+      p.category.toLowerCase().includes(pkgSearch.toLowerCase())
   );
 
   // Auth Form Handlers
@@ -1693,97 +1880,136 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              <div className="relative w-full md:w-72">
-                <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500" />
-                <input
-                  type="text"
-                  value={clientSearch}
-                  onChange={(e) => setClientSearch(e.target.value)}
-                  placeholder="İsim, telefon veya formül ara..."
-                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
-                />
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500" />
+                  <input
+                    type="text"
+                    value={clientSearch}
+                    onChange={(e) => setClientSearch(e.target.value)}
+                    placeholder="İsim, telefon veya formül ara..."
+                    className="w-full pl-8 pr-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClientFormError('');
+                    setIsAddClientOpen(true);
+                  }}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#D4AF37] hover:bg-[#E5BF47] text-black font-extrabold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Yeni Danışan Ekle</span>
+                </button>
               </div>
             </div>
 
             {/* Clients Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredClients.map((client) => {
-                const clientApts = appointments.filter(
-                  (a) => a.clientPhone.replace(/[^0-9]/g, '') === client.phone.replace(/[^0-9]/g, '')
-                );
-                const clientPackages = packages.filter(
-                  (p) => p.clientPhone.replace(/[^0-9]/g, '') === client.phone.replace(/[^0-9]/g, '')
-                );
-                const totalSpent = clientApts.reduce((sum, a) => sum + (a.status === 'TAMAMLANDI' ? a.price : 0), 0);
+            {filteredClients.length === 0 ? (
+              <div className="p-12 text-center rounded-2xl bg-zinc-950/60 border border-zinc-800/80 space-y-3">
+                <User className="w-10 h-10 text-zinc-600 mx-auto" />
+                <p className="text-sm font-semibold text-zinc-300">
+                  {clientSearch ? 'Aramanıza uygun danışan bulunamadı.' : 'Henüz kayıtlı danışan bulunmuyor.'}
+                </p>
+                <button
+                  onClick={() => setIsAddClientOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-[#D4AF37] text-black text-xs font-bold hover:bg-[#E5BF47] transition cursor-pointer"
+                >
+                  + İlk Danışanı Ekle
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredClients.map((client) => {
+                  const clientApts = appointments.filter(
+                    (a) => a.clientPhone.replace(/[^0-9]/g, '') === client.phone.replace(/[^0-9]/g, '')
+                  );
+                  const clientPackages = packages.filter(
+                    (p) => p.clientPhone.replace(/[^0-9]/g, '') === client.phone.replace(/[^0-9]/g, '')
+                  );
+                  const totalSpent = clientApts.reduce((sum, a) => sum + (a.status === 'TAMAMLANDI' ? a.price : 0), 0);
 
-                return (
-                  <div
-                    key={client.phone}
-                    className="p-5 rounded-2xl bg-zinc-950 border border-zinc-800/90 hover:border-[#D4AF37]/50 transition flex flex-col justify-between space-y-4"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-serif font-bold text-base text-white">{client.name}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/30 text-[#D4AF37] text-[11px] font-bold flex items-center gap-1">
-                          <Gift className="w-3 h-3" /> {client.loyaltyPoints} ₺ ParaPuan
-                        </span>
+                  return (
+                    <div
+                      key={client.phone}
+                      className="p-5 rounded-2xl bg-zinc-950 border border-zinc-800/90 hover:border-[#D4AF37]/50 transition flex flex-col justify-between space-y-4"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-serif font-bold text-base text-white">{client.name}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/30 text-[#D4AF37] text-[11px] font-bold flex items-center gap-1">
+                            <Gift className="w-3 h-3" /> {client.loyaltyPoints} ₺ ParaPuan
+                          </span>
+                        </div>
+
+                        <div className="text-xs text-zinc-400 font-mono mb-3">{client.phone}</div>
+
+                        {/* Special Notes & Formula Memory */}
+                        <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-xs space-y-1">
+                          <span className="text-[10px] uppercase font-bold text-[#D4AF37] block">
+                            Özel Not & Formül Hafızası
+                          </span>
+                          <p className="text-zinc-300 italic line-clamp-2">
+                            {client.specialNotes || 'Henüz özel not eklenmemiş.'}
+                          </p>
+                        </div>
+
+                        {/* Mini Stats */}
+                        <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-zinc-800/80 text-center">
+                          <div>
+                            <span className="text-[10px] text-zinc-500 block">Ziyaret</span>
+                            <span className="text-xs font-bold text-white">{clientApts.length} Seans</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-zinc-500 block">Paketler</span>
+                            <span className="text-xs font-bold text-blue-400">{clientPackages.length} Adet</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-zinc-500 block">Bıraktığı Ciro</span>
+                            <span className="text-xs font-bold text-emerald-400">{formatCurrency(totalSpent)}</span>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="text-xs text-zinc-400 font-mono mb-3">{client.phone}</div>
+                      <div className="pt-2 flex items-center justify-between border-t border-zinc-800">
+                        <button
+                          onClick={() => handleOpenEditClient(client)}
+                          className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-[#D4AF37]" />
+                          <span>Danışan Dosyası & Düzenle</span>
+                        </button>
 
-                      {/* Special Notes & Formula Memory */}
-                      <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-xs space-y-1">
-                        <span className="text-[10px] uppercase font-bold text-[#D4AF37] block">
-                          Özel Not & Formül Hafızası
-                        </span>
-                        <p className="text-zinc-300 italic">
-                          {client.specialNotes || 'Henüz özel not eklenmemiş.'}
-                        </p>
-                      </div>
+                        <div className="flex items-center gap-1.5">
+                          <a
+                            href={`https://api.whatsapp.com/send?phone=${client.phone.replace(/[^0-9]/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800 text-emerald-400 transition"
+                            title="WhatsApp Mesajı Başlat"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                          </a>
 
-                      {/* Mini Stats */}
-                      <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-zinc-800/80 text-center">
-                        <div>
-                          <span className="text-[10px] text-zinc-500 block">Ziyaret</span>
-                          <span className="text-xs font-bold text-white">{clientApts.length} Seans</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-500 block">Paketler</span>
-                          <span className="text-xs font-bold text-blue-400">{clientPackages.length} Adet</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-500 block">Bıraktığı Ciro</span>
-                          <span className="text-xs font-bold text-emerald-400">{formatCurrency(totalSpent)}</span>
+                          <button
+                            onClick={() => {
+                              setClientToDelete(client);
+                              setIsDeleteClientModalOpen(true);
+                            }}
+                            className="p-2 rounded-xl bg-zinc-900 hover:bg-red-950/60 border border-zinc-800 hover:border-red-800 text-zinc-500 hover:text-red-400 transition cursor-pointer"
+                            title="Danışanı Sil"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     </div>
-
-                    <div className="pt-2 flex items-center justify-between border-t border-zinc-800">
-                      <button
-                        onClick={() => {
-                          setSelectedClient(client);
-                          setClientNoteEdit(client.specialNotes || '');
-                        }}
-                        className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                        <span>Notu & Puanı Düzenle</span>
-                      </button>
-
-                      <a
-                        href={`https://api.whatsapp.com/send?phone=${client.phone.replace(/[^0-9]/g, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800 text-emerald-400 transition"
-                        title="WhatsApp Mesajı Başlat"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                      </a>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -1796,17 +2022,30 @@ export default function AdminPage() {
                   Paket & Seans Takip Modülü
                 </h3>
                 <p className="text-xs text-zinc-400 mt-1 max-w-2xl">
-                  Lazer epilasyon, bölgesel incelme ve medikal cilt bakım paketlerini tanımlayın; her seanstan sonra tek tıkla seansı düşüp danışana WhatsApp bilgilendirmesi gönderin.
+                  Lazer epilasyon, bölgesel incelme ve cilt bakım paketlerini takip edin. Seans sayılarını ve kalan bakiyeleri dilediğiniz gibi düzenleyebilir, tek tıkla seans düşüp danışana WhatsApp bilgilendirmesi gönderebilirsiniz.
                 </p>
               </div>
 
-              <button
-                onClick={() => setIsAddPackageOpen(!isAddPackageOpen)}
-                className="px-4 py-2 rounded-xl bg-[#D4AF37] hover:bg-[#E5BF47] text-black font-extrabold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Yeni Paket Satışı Tanımla</span>
-              </button>
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500" />
+                  <input
+                    type="text"
+                    value={pkgSearch}
+                    onChange={(e) => setPkgSearch(e.target.value)}
+                    placeholder="Danışan, telefon veya paket ara..."
+                    className="w-full pl-8 pr-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+
+                <button
+                  onClick={() => setIsAddPackageOpen(!isAddPackageOpen)}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#D4AF37] hover:bg-[#E5BF47] text-black font-extrabold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Yeni Paket Satışı Tanımla</span>
+                </button>
+              </div>
             </div>
 
             {/* Add Package Form Card */}
@@ -1875,7 +2114,7 @@ export default function AdminPage() {
                     <input
                       type="number"
                       min={1}
-                      max={20}
+                      max={30}
                       required
                       value={pkgTotalSessions}
                       onChange={(e) => setPkgTotalSessions(Number(e.target.value))}
@@ -1940,109 +2179,160 @@ export default function AdminPage() {
             )}
 
             {/* Packages List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {packages.map((pkg) => {
-                const remaining = pkg.totalSessions - pkg.completedSessions;
-                const progressPct = Math.round((pkg.completedSessions / pkg.totalSessions) * 100);
-                const debt = pkg.totalPrice - pkg.paidAmount;
+            {filteredPackages.length === 0 ? (
+              <div className="p-12 text-center rounded-2xl bg-zinc-950/60 border border-zinc-800/80 space-y-3">
+                <Layers className="w-10 h-10 text-zinc-600 mx-auto" />
+                <p className="text-sm font-semibold text-zinc-300">
+                  {pkgSearch ? 'Aramanıza uygun paket kaydı bulunamadı.' : 'Henüz tanımlanmış paket bulunmuyor.'}
+                </p>
+                <button
+                  onClick={() => setIsAddPackageOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-[#D4AF37] text-black text-xs font-bold hover:bg-[#E5BF47] transition cursor-pointer"
+                >
+                  + Yeni Paket Tanımla
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredPackages.map((pkg) => {
+                  const remaining = Math.max(0, pkg.totalSessions - pkg.completedSessions);
+                  const progressPct = Math.min(100, Math.round((pkg.completedSessions / pkg.totalSessions) * 100));
+                  const debt = pkg.totalPrice - pkg.paidAmount;
 
-                return (
-                  <div
-                    key={pkg.id}
-                    className="p-5 rounded-2xl bg-zinc-950 border border-zinc-800/90 hover:border-zinc-700 transition flex flex-col justify-between space-y-4"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] font-bold uppercase text-[#D4AF37] px-2 py-0.5 rounded bg-[#D4AF37]/10">
-                          {pkg.category}
-                        </span>
-                        <span className="text-xs font-bold text-white font-mono">{pkg.clientPhone}</span>
-                      </div>
-
-                      <h4 className="font-serif font-bold text-base text-white">{pkg.packageName}</h4>
-                      <p className="text-xs text-zinc-400 mt-0.5">Danışan: <strong className="text-white">{pkg.clientName}</strong></p>
-
-                      {/* Progress Bar */}
-                      <div className="mt-4 space-y-1.5">
-                        <div className="flex justify-between text-xs font-semibold">
-                          <span className="text-zinc-300">
-                            {pkg.completedSessions} / {pkg.totalSessions} Seans Tamamlandı
+                  return (
+                    <div
+                      key={pkg.id}
+                      className="p-5 rounded-2xl bg-zinc-950 border border-zinc-800/90 hover:border-zinc-700 transition flex flex-col justify-between space-y-4"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-bold uppercase text-[#D4AF37] px-2 py-0.5 rounded bg-[#D4AF37]/10">
+                            {pkg.category}
                           </span>
-                          <span className="text-[#D4AF37] font-bold">
-                            {remaining === 0 ? 'TAMAMLANDI' : `${remaining} Seans Kaldı`}
-                          </span>
+                          <span className="text-xs font-bold text-white font-mono">{pkg.clientPhone}</span>
                         </div>
-                        <div className="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-[#997929] to-[#D4AF37] transition-all duration-500"
-                            style={{ width: `${progressPct}%` }}
-                          />
-                        </div>
-                      </div>
 
-                      {/* Financial info & Notes */}
-                      <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs">
-                        <div>
-                          <span className="text-[10px] text-zinc-500 block">Paket Tutarı</span>
-                          <span className="font-bold text-white">{formatCurrency(pkg.totalPrice)}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-500 block">Tahsil Edilen</span>
-                          <span className="font-bold text-emerald-400">{formatCurrency(pkg.paidAmount)}</span>
-                        </div>
-                        {debt > 0 && (
-                          <div>
-                            <span className="text-[10px] text-zinc-500 block">Kalan Bakiye</span>
-                            <span className="font-bold text-red-400">{formatCurrency(debt)}</span>
+                        <h4 className="font-serif font-bold text-base text-white">{pkg.packageName}</h4>
+                        <p className="text-xs text-zinc-400 mt-0.5">
+                          Danışan: <strong className="text-white">{pkg.clientName}</strong>
+                        </p>
+
+                        {/* Progress Bar & Session Counts */}
+                        <div className="mt-4 space-y-1.5">
+                          <div className="flex justify-between items-center text-xs font-semibold">
+                            <span className="text-zinc-300 flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                              <strong>{pkg.completedSessions}</strong> / {pkg.totalSessions} Seans Alındı
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                              remaining === 0
+                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                : 'bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30'
+                            }`}>
+                              {remaining === 0 ? 'TAMAMLANDI' : `${remaining} Seans Kaldı`}
+                            </span>
                           </div>
+                          <div className="w-full h-2.5 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-[#997929] to-[#D4AF37] transition-all duration-500"
+                              style={{ width: `${progressPct}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Financial info & Notes */}
+                        <div className="mt-4 pt-3 border-t border-zinc-800/80 grid grid-cols-3 gap-2 text-xs">
+                          <div>
+                            <span className="text-[10px] text-zinc-500 block">Paket Tutarı</span>
+                            <span className="font-bold text-white">{formatCurrency(pkg.totalPrice)}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-zinc-500 block">Tahsil Edilen</span>
+                            <span className="font-bold text-emerald-400">{formatCurrency(pkg.paidAmount)}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-zinc-500 block">Kalan Borç</span>
+                            <span className={`font-bold ${debt > 0 ? 'text-red-400' : 'text-zinc-400'}`}>
+                              {debt > 0 ? formatCurrency(debt) : 'Ödendi'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {pkg.notes && (
+                          <p className="mt-3 text-[11px] text-zinc-400 italic bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800/60">
+                            {pkg.notes}
+                          </p>
+                        )}
+
+                        {pkg.lastSessionDate && (
+                          <p className="mt-2 text-[10px] text-zinc-500 font-mono">
+                            Son Seans Tarihi: {pkg.lastSessionDate}
+                          </p>
                         )}
                       </div>
 
-                      {pkg.notes && (
-                        <p className="mt-3 text-[11px] text-zinc-400 italic bg-zinc-900/60 p-2 rounded-lg border border-zinc-800/60">
-                          {pkg.notes}
-                        </p>
-                      )}
-                    </div>
+                      {/* Actions */}
+                      <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleOpenEditPackage(pkg)}
+                            className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition"
+                            title="Seans ve Ödeme Bilgilerini Düzenle"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-[#D4AF37]" />
+                            <span>Düzenle</span>
+                          </button>
 
-                    {/* Actions */}
-                    <div className="pt-2 flex items-center justify-between border-t border-zinc-800">
-                      <button
-                        onClick={() => deletePackage(pkg.id)}
-                        className="p-2 text-zinc-500 hover:text-red-400 transition cursor-pointer"
-                        title="Paketi Sil"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                          <button
+                            onClick={() => deletePackage(pkg.id)}
+                            className="p-2 text-zinc-500 hover:text-red-400 hover:bg-zinc-900 rounded-xl transition cursor-pointer"
+                            title="Paketi Sil"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleSendPackageSessionWhatsApp(pkg)}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
-                          title="WhatsApp Seans Durumu Gönder"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          <span>WhatsApp Bilgilendir</span>
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          {pkg.completedSessions > 0 && (
+                            <button
+                              onClick={() => refundSession(pkg.id)}
+                              className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-medium flex items-center gap-1 transition cursor-pointer"
+                              title="Son seansı iptal et ve seansı pakete geri yükle (+1)"
+                            >
+                              <RotateCcw className="w-3 h-3 text-amber-400" />
+                              <span className="hidden sm:inline">+1 Geri Al</span>
+                            </button>
+                          )}
 
-                        <button
-                          onClick={() => consumeSession(pkg.id)}
-                          disabled={remaining <= 0}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                            remaining <= 0
-                              ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                              : 'bg-[#D4AF37] hover:bg-[#E5BF47] text-black shadow-md'
-                          }`}
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Seans Düş (-1)</span>
-                        </button>
+                          <button
+                            onClick={() => handleSendPackageSessionWhatsApp(pkg)}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                            title="WhatsApp Seans Durumu Gönder"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">WhatsApp</span>
+                          </button>
+
+                          <button
+                            onClick={() => consumeSession(pkg.id)}
+                            disabled={remaining <= 0}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                              remaining <= 0
+                                ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                                : 'bg-[#D4AF37] hover:bg-[#E5BF47] text-black shadow-md'
+                            }`}
+                            title="Seansı düş ve tarihi bugüne kaydet"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Seans Düş (-1)</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -3169,90 +3459,532 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* MODAL 3: CRM CLIENT PROFILE & NOTES EDITOR MODAL */}
-      {selectedClient && (
+      {/* MODAL 3: ADD NEW CLIENT (CRM) */}
+      {isAddClientOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="relative w-full max-w-lg p-6 rounded-2xl bg-zinc-950 border border-[#D4AF37]/50 shadow-2xl space-y-5">
+          <div className="relative w-full max-w-md p-6 rounded-2xl bg-zinc-950 border border-[#D4AF37]/50 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-[#D4AF37]/10 text-[#D4AF37]">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-serif font-bold text-base text-white">{selectedClient.name}</h3>
-                  <p className="text-xs text-zinc-400">{selectedClient.phone}</p>
+                  <h3 className="font-serif font-bold text-base text-white">
+                    Yeni Danışan Kaydı (CRM)
+                  </h3>
+                  <p className="text-[11px] text-zinc-400">Danışanı müşteri veri tabanına ekleyin</p>
                 </div>
               </div>
               <button
-                onClick={() => setSelectedClient(null)}
+                type="button"
+                onClick={() => setIsAddClientOpen(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {clientFormError && (
+              <div className="p-3 rounded-xl bg-red-950/70 border border-red-800 text-red-200 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <span>{clientFormError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateClient} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  Danışan Adı Soyadı *
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    value={newClientFormName}
+                    onChange={(e) => setNewClientFormName(e.target.value)}
+                    placeholder="Örn: Ayşe Demir"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  Telefon Numarası *
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    required
+                    value={newClientFormPhone}
+                    onChange={(e) => setNewClientFormPhone(e.target.value)}
+                    placeholder="+90 5XX XXX XX XX"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  Başlangıç ParaPuan Tutarı (TL)
+                </label>
+                <div className="relative">
+                  <Gift className="w-4 h-4 text-[#D4AF37] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="number"
+                    min={0}
+                    step={10}
+                    value={newClientFormPoints}
+                    onChange={(e) => setNewClientFormPoints(Number(e.target.value))}
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  Cilt Tipi, Formül & Özel Notlar
+                </label>
+                <textarea
+                  rows={3}
+                  value={newClientFormNotes}
+                  onChange={(e) => setNewClientFormNotes(e.target.value)}
+                  placeholder="Örn: Hassas cilt, oje kodu 04 nude, salisilik asit alerjisi..."
+                  className="w-full p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddClientOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold hover:text-white cursor-pointer"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#D4AF37] hover:bg-[#E5BF47] text-black font-extrabold text-xs shadow-md cursor-pointer"
+                >
+                  Danışanı Kaydet
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: CLIENT DOSSIER & PROFILE EDITOR */}
+      {editingClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-lg p-6 rounded-2xl bg-zinc-950 border border-[#D4AF37]/50 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-[#D4AF37]/10 text-[#D4AF37]">
+                  <User className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base text-white">
+                    {editingClient.name}
+                  </h3>
+                  <p className="text-xs text-zinc-400 font-mono">{editingClient.phone}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingClient(null)}
                 className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Loyalty Points Section */}
-            <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between">
+            {editClientError && (
+              <div className="p-3 rounded-xl bg-red-950/70 border border-red-800 text-red-200 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <span>{editClientError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEditClient} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1">Danışan Adı Soyadı *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editClientName}
+                    onChange={(e) => setEditClientName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1">Telefon Numarası *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={editClientPhone}
+                    onChange={(e) => setEditClientPhone(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+              </div>
+
+              {/* ParaPuan Cüzdanı */}
+              <div className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-zinc-400 block">Mevcut ParaPuan Cüzdanı</span>
+                  <span className="text-xl font-black text-[#D4AF37]">{editClientPoints} ₺</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-[11px] text-zinc-400">Yeni Bakiye:</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={10}
+                    value={editClientPoints}
+                    onChange={(e) => setEditClientPoints(Number(e.target.value))}
+                    className="w-24 px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white text-center font-bold text-[#D4AF37]"
+                  />
+                </div>
+              </div>
+
+              {/* Formül & Özel Notlar */}
               <div>
-                <span className="text-[10px] uppercase font-bold text-zinc-400 block">Mevcut ParaPuan Cüzdanı</span>
-                <span className="text-xl font-black text-[#D4AF37]">{selectedClient.loyaltyPoints} ₺</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={1}
-                  step={10}
-                  value={pointAddInput}
-                  onChange={(e) => setPointAddInput(Number(e.target.value))}
-                  className="w-20 px-2 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white text-center"
+                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                  Uzman Notları, Alerjiler & Formül Hafızası
+                </label>
+                <textarea
+                  rows={3}
+                  value={editClientNotes}
+                  onChange={(e) => setEditClientNotes(e.target.value)}
+                  placeholder="Örn: Cilt hassasiyeti var, oje rengi 04 nude..."
+                  className="w-full p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D4AF37]"
                 />
-                <button
-                  type="button"
-                  onClick={() => {
-                    addLoyaltyPoints(selectedClient.phone, pointAddInput);
-                    setSelectedClient((prev) => prev ? { ...prev, loyaltyPoints: prev.loyaltyPoints + pointAddInput } : null);
-                  }}
-                  className="px-3 py-1.5 rounded-lg bg-[#D4AF37] text-black text-xs font-bold cursor-pointer"
-                >
-                  + Ekle
-                </button>
               </div>
-            </div>
 
-            {/* Special Notes & Formula Memory Editor */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                Uzman Notları, Alerjiler & İşlem / Formül Hafızası
-              </label>
-              <textarea
-                rows={4}
-                value={clientNoteEdit}
-                onChange={(e) => setClientNoteEdit(e.target.value)}
-                placeholder="Örn: Ciltte niasinamid hassasiyeti var, badem tırnak formunda 04 numaralı nude oje tercih ediyor..."
-                className="w-full p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D4AF37]"
-              />
-            </div>
+              {/* Mini History & Packages overview for this client */}
+              <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800/80 space-y-2 text-xs">
+                <span className="text-[10px] uppercase font-bold text-zinc-400 block">
+                  Danışanın Sistem Geçmişi
+                </span>
+                <div className="grid grid-cols-2 gap-2 text-center">
+                  <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
+                    <span className="text-[10px] text-zinc-500 block">Randevu / İşlem Sayısı</span>
+                    <span className="font-bold text-white">
+                      {appointments.filter((a) => a.clientPhone.replace(/[^0-9]/g, '') === editingClient.phone.replace(/[^0-9]/g, '')).length} Kayıt
+                    </span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
+                    <span className="text-[10px] text-zinc-500 block">Aktif Paket Sayısı</span>
+                    <span className="font-bold text-blue-400">
+                      {packages.filter((p) => p.clientPhone.replace(/[^0-9]/g, '') === editingClient.phone.replace(/[^0-9]/g, '')).length} Paket
+                    </span>
+                  </div>
+                </div>
+              </div>
 
+              {/* Action buttons */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`https://api.whatsapp.com/send?phone=${editingClient.phone.replace(/[^0-9]/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>WhatsApp</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClientToDelete(editingClient);
+                      setIsDeleteClientModalOpen(true);
+                    }}
+                    className="px-3 py-2 rounded-xl text-red-400 hover:bg-red-950/40 border border-red-900/40 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Sil</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingClient(null)}
+                    className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold hover:text-white cursor-pointer"
+                  >
+                    İptal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-[#D4AF37] hover:bg-[#E5BF47] text-black font-extrabold text-xs shadow-md cursor-pointer"
+                  >
+                    Bilgileri Kaydet
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: DELETE CLIENT CONFIRMATION */}
+      {isDeleteClientModalOpen && clientToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-sm p-6 rounded-2xl bg-zinc-950 border border-red-800/60 shadow-2xl space-y-4">
+            <div className="flex items-center gap-2 text-red-400">
+              <AlertCircle className="w-5 h-5" />
+              <h3 className="font-serif font-bold text-sm text-white">Danışanı Sil</h3>
+            </div>
+            <p className="text-xs text-zinc-300">
+              <strong className="text-white">{clientToDelete.name}</strong> ({clientToDelete.phone}) adlı danışanı CRM listesinden silmek istediğinize emin misiniz?
+            </p>
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setSelectedClient(null)}
-                className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold cursor-pointer"
+                onClick={() => {
+                  setClientToDelete(null);
+                  setIsDeleteClientModalOpen(false);
+                }}
+                className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold hover:text-white cursor-pointer"
               >
-                Kapat
+                Vazgeç
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  updateClientNotes(selectedClient.phone, clientNoteEdit);
-                  setSelectedClient((prev) => prev ? { ...prev, specialNotes: clientNoteEdit } : null);
-                }}
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md cursor-pointer"
+                onClick={handleConfirmDeleteClient}
+                className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs shadow-md cursor-pointer"
               >
-                Hafıza Notunu Kaydet
+                Evet, Sil
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 6: EDIT PACKAGE & SESSIONS */}
+      {editingPackage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-lg p-6 rounded-2xl bg-zinc-950 border border-[#D4AF37]/50 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-[#D4AF37]/10 text-[#D4AF37]">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base text-white">
+                    Paket & Seans Bilgilerini Düzenle
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    {editingPackage.clientName} · {editingPackage.clientPhone}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingPackage(null)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {pkgEditError && (
+              <div className="p-3 rounded-xl bg-red-950/60 border border-red-800 text-red-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <span>{pkgEditError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEditPackage} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-zinc-300 mb-1">Paket Adı *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editPkgName}
+                    onChange={(e) => setEditPkgName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-zinc-300 mb-1">Kategori</label>
+                  <select
+                    value={editPkgCategory}
+                    onChange={(e) => setEditPkgCategory(e.target.value as ServiceCategory)}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  >
+                    <option value="Lazer Epilasyon">Lazer Epilasyon</option>
+                    <option value="Cilt Bakımı">Cilt Bakımı</option>
+                    <option value="Bölgesel İncelme">Bölgesel İncelme</option>
+                    <option value="Protez Tırnak & Manikür">Protez Tırnak & Manikür</option>
+                    <option value="İpek Kirpik & Kaş">İpek Kirpik & Kaş</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Seans Sayıları (Alınan & Kalan) */}
+              <div className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#D4AF37] uppercase tracking-wider">
+                    Seans Takip Değerleri
+                  </span>
+                  <span className="text-xs font-bold text-white bg-black/40 px-2.5 py-1 rounded-lg border border-zinc-700">
+                    Kalan: <strong className="text-[#D4AF37]">{Math.max(0, editPkgTotalSessions - editPkgCompletedSessions)}</strong> Seans
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">
+                      Toplam Seans Sayısı *
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      required
+                      value={editPkgTotalSessions}
+                      onChange={(e) => setEditPkgTotalSessions(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">
+                      Alınan (Tamamlanan) Seans *
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={editPkgTotalSessions}
+                      required
+                      value={editPkgCompletedSessions}
+                      onChange={(e) => setEditPkgCompletedSessions(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setEditPkgCompletedSessions((prev) => Math.min(editPkgTotalSessions, prev + 1))}
+                    disabled={editPkgCompletedSessions >= editPkgTotalSessions}
+                    className="flex-1 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-[11px] font-bold text-emerald-400 transition cursor-pointer"
+                  >
+                    +1 Seans Ekle (Düş)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditPkgCompletedSessions((prev) => Math.max(0, prev - 1))}
+                    disabled={editPkgCompletedSessions <= 0}
+                    className="flex-1 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-[11px] font-bold text-amber-400 transition cursor-pointer"
+                  >
+                    -1 Seans İade (Geri Al)
+                  </button>
+                </div>
+              </div>
+
+              {/* Finansal Değerler & Ödeme */}
+              <div className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#D4AF37] uppercase tracking-wider">
+                    Ödeme & Tahsilat
+                  </span>
+                  <span className="text-xs font-bold text-white bg-black/40 px-2.5 py-1 rounded-lg border border-zinc-700">
+                    Kalan Borç: <strong className={editPkgTotalPrice - editPkgPaidAmount > 0 ? "text-red-400" : "text-emerald-400"}>
+                      {formatCurrency(Math.max(0, editPkgTotalPrice - editPkgPaidAmount))}
+                    </strong>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">
+                      Toplam Paket Ücreti (TL) *
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={50}
+                      required
+                      value={editPkgTotalPrice}
+                      onChange={(e) => setEditPkgTotalPrice(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">
+                      Tahsil Edilen Tutar (TL) *
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={50}
+                      required
+                      value={editPkgPaidAmount}
+                      onChange={(e) => setEditPkgPaidAmount(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">Son Seans Tarihi</label>
+                  <input
+                    type="date"
+                    value={editPkgLastSessionDate}
+                    onChange={(e) => setEditPkgLastSessionDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">Danışan Adı</label>
+                  <input
+                    type="text"
+                    value={editPkgClientName}
+                    onChange={(e) => setEditPkgClientName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] text-zinc-400 mb-1">Not / Protokol / Taksit Açıklaması</label>
+                <textarea
+                  rows={2}
+                  value={editPkgNotes}
+                  onChange={(e) => setEditPkgNotes(e.target.value)}
+                  placeholder="Bölge bilgisi, atış joule derecesi, taksit tarihi vb..."
+                  className="w-full p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingPackage(null)}
+                  className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-semibold hover:text-white cursor-pointer"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#D4AF37] hover:bg-[#E5BF47] text-black font-extrabold text-xs shadow-md cursor-pointer"
+                >
+                  Değişiklikleri Kaydet
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

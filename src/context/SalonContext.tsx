@@ -45,6 +45,7 @@ import {
   cloudSaveProduct,
   cloudDeleteProduct,
   cloudSaveClient,
+  cloudDeleteClient,
   cloudSavePackage,
   cloudDeletePackage,
   cloudSaveExpense,
@@ -92,6 +93,9 @@ interface SalonContextType {
 
   // CRM & Client Dossier
   clients: ClientProfile[];
+  addClient: (client: Omit<ClientProfile, 'createdAt'> & { createdAt?: string }) => { success: boolean; message: string };
+  updateClient: (originalPhone: string, updatedFields: Partial<ClientProfile>) => { success: boolean; message: string };
+  deleteClient: (phone: string) => void;
   updateClientNotes: (phone: string, notes: string) => void;
   addLoyaltyPoints: (phone: string, points: number) => void;
   getClientByPhone: (phone: string) => ClientProfile | undefined;
@@ -99,7 +103,9 @@ interface SalonContextType {
   // Packages & Sessions
   packages: ClientPackage[];
   addPackage: (pkg: Omit<ClientPackage, 'id'>) => void;
+  updatePackage: (id: string, updatedFields: Partial<ClientPackage>) => void;
   consumeSession: (packageId: string) => void;
+  refundSession: (packageId: string) => void;
   deletePackage: (packageId: string) => void;
 
   // Expenses & Cashflow
@@ -859,6 +865,92 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     return Array.from(new Set([...booked, ...blocked]));
   };
 
+  // CRM: Client CRUD & Notes
+  const addClient = (clientData: Omit<ClientProfile, 'createdAt'> & { createdAt?: string }) => {
+    const cleanPhone = clientData.phone.replace(/[^0-9]/g, '');
+    if (!cleanPhone) {
+      return { success: false, message: 'Geçerli bir telefon numarası giriniz.' };
+    }
+    const exists = clients.some((c) => c.phone.replace(/[^0-9]/g, '') === cleanPhone);
+    if (exists) {
+      return { success: false, message: 'Bu telefon numarasına ait bir danışan zaten kayıtlı.' };
+    }
+
+    const newClient: ClientProfile = {
+      phone: clientData.phone.trim(),
+      name: clientData.name.trim(),
+      specialNotes: clientData.specialNotes?.trim() || '',
+      loyaltyPoints: Number(clientData.loyaltyPoints) || 0,
+      createdAt: clientData.createdAt || new Date().toISOString(),
+    };
+
+    const updated = [newClient, ...clients];
+    saveClients(updated);
+    cloudSaveClient(newClient).catch(console.error);
+    showNotification(`"${newClient.name}" danışan olarak kaydedildi.`);
+    return { success: true, message: 'Danışan başarıyla eklendi.' };
+  };
+
+  const updateClient = (originalPhone: string, updatedFields: Partial<ClientProfile>) => {
+    const origClean = originalPhone.replace(/[^0-9]/g, '');
+    const target = clients.find((c) => c.phone.replace(/[^0-9]/g, '') === origClean);
+    if (!target) {
+      return { success: false, message: 'Danışan bulunamadı.' };
+    }
+
+    const newClean = updatedFields.phone ? updatedFields.phone.replace(/[^0-9]/g, '') : origClean;
+    if (newClean !== origClean) {
+      const conflict = clients.some(
+        (c) => c.phone.replace(/[^0-9]/g, '') === newClean && c.phone.replace(/[^0-9]/g, '') !== origClean
+      );
+      if (conflict) {
+        return { success: false, message: 'Bu telefon numarası başka bir danışana ait.' };
+      }
+    }
+
+    const updatedClient: ClientProfile = {
+      ...target,
+      ...updatedFields,
+      phone: updatedFields.phone ? updatedFields.phone.trim() : target.phone,
+      name: updatedFields.name !== undefined ? updatedFields.name.trim() : target.name,
+      specialNotes: updatedFields.specialNotes !== undefined ? updatedFields.specialNotes : target.specialNotes,
+      loyaltyPoints: updatedFields.loyaltyPoints !== undefined ? Number(updatedFields.loyaltyPoints) : target.loyaltyPoints,
+    };
+
+    const updatedClients = clients.map((c) =>
+      c.phone.replace(/[^0-9]/g, '') === origClean ? updatedClient : c
+    );
+    saveClients(updatedClients);
+
+    if (newClean !== origClean) {
+      cloudDeleteClient(origClean).catch(console.error);
+      const updatedApts = appointments.map((a) =>
+        a.clientPhone.replace(/[^0-9]/g, '') === origClean
+          ? { ...a, clientPhone: updatedClient.phone, clientName: updatedClient.name }
+          : a
+      );
+      saveAppointments(updatedApts);
+      const updatedPkgs = packages.map((p) =>
+        p.clientPhone.replace(/[^0-9]/g, '') === origClean
+          ? { ...p, clientPhone: updatedClient.phone, clientName: updatedClient.name }
+          : p
+      );
+      savePackages(updatedPkgs);
+    }
+    cloudSaveClient(updatedClient).catch(console.error);
+    showNotification(`"${updatedClient.name}" danışan bilgileri güncellendi.`);
+    return { success: true, message: 'Danışan bilgileri güncellendi.' };
+  };
+
+  const deleteClient = (phone: string) => {
+    const clean = phone.replace(/[^0-9]/g, '');
+    const target = clients.find((c) => c.phone.replace(/[^0-9]/g, '') === clean);
+    const updated = clients.filter((c) => c.phone.replace(/[^0-9]/g, '') !== clean);
+    saveClients(updated);
+    cloudDeleteClient(clean).catch(console.error);
+    showNotification(`"${target?.name || 'Danışan'}" CRM arşivinden silindi.`);
+  };
+
   // CRM: Update Client Notes & Memory
   const updateClientNotes = (phone: string, notes: string) => {
     const cleanPhone = phone.replace(/[^0-9]/g, '');
@@ -909,6 +1001,58 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
     savePackages(updated);
     cloudSavePackage(newPkg).catch(console.error);
     showNotification(`"${newPkg.packageName}" paketi ${newPkg.clientName} için tanımlandı.`);
+  };
+
+  const updatePackage = (id: string, updatedFields: Partial<ClientPackage>) => {
+    let updatedTarget: ClientPackage | undefined;
+    const updated = packages.map((p) => {
+      if (p.id === id) {
+        updatedTarget = {
+          ...p,
+          ...updatedFields,
+          totalSessions: updatedFields.totalSessions !== undefined ? Number(updatedFields.totalSessions) : p.totalSessions,
+          completedSessions: updatedFields.completedSessions !== undefined ? Number(updatedFields.completedSessions) : p.completedSessions,
+          totalPrice: updatedFields.totalPrice !== undefined ? Number(updatedFields.totalPrice) : p.totalPrice,
+          paidAmount: updatedFields.paidAmount !== undefined ? Number(updatedFields.paidAmount) : p.paidAmount,
+        };
+        return updatedTarget;
+      }
+      return p;
+    });
+
+    savePackages(updated);
+    if (updatedTarget) {
+      cloudSavePackage(updatedTarget).catch(console.error);
+    }
+    showNotification('Paket ve seans detayları başarıyla güncellendi.');
+  };
+
+  const refundSession = (packageId: string) => {
+    const target = packages.find((p) => p.id === packageId);
+    if (!target) return;
+    if (target.completedSessions <= 0) {
+      showNotification('Bu pakette henüz tamamlanmış bir seans bulunmuyor.');
+      return;
+    }
+
+    let updatedPkg: ClientPackage | undefined;
+    const updated = packages.map((p) => {
+      if (p.id === packageId) {
+        updatedPkg = {
+          ...p,
+          completedSessions: Math.max(0, p.completedSessions - 1),
+        };
+        return updatedPkg;
+      }
+      return p;
+    });
+
+    savePackages(updated);
+    if (updatedPkg) {
+      cloudSavePackage(updatedPkg).catch(console.error);
+    }
+    const remaining = target.totalSessions - (target.completedSessions - 1);
+    showNotification(`1 seans geri yüklendi! Kalan seans: ${remaining}`);
   };
 
   const consumeSession = (packageId: string) => {
@@ -1075,12 +1219,17 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
         isDateBlocked,
         isSlotBlocked,
         clients,
+        addClient,
+        updateClient,
+        deleteClient,
         updateClientNotes,
         addLoyaltyPoints,
         getClientByPhone,
         packages,
         addPackage,
+        updatePackage,
         consumeSession,
+        refundSession,
         deletePackage,
         expenses,
         addExpense,

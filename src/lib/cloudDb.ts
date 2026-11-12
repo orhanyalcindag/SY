@@ -378,6 +378,17 @@ export async function cloudSaveClient(client: ClientProfile) {
   }
 }
 
+export async function cloudDeleteClient(phone: string) {
+  const db = getFirebaseDb();
+  if (!db) return;
+  try {
+    const key = phone.replace(/[^0-9]/g, '');
+    await deleteDoc(doc(db, COL_CLIENTS, key));
+  } catch (err) {
+    console.error('cloudDeleteClient error:', err);
+  }
+}
+
 export async function cloudSavePackage(pkg: ClientPackage) {
   const db = getFirebaseDb();
   if (!db) return;
